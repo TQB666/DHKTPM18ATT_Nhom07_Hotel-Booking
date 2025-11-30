@@ -12,4 +12,7 @@ import com.hotelbooking.hotel_booking.domain.Booking;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByConfirmationToken(String token);
     List<Booking> findAllByOrderByIdDesc();
+
+    // thực hiện cho lịch sử đặt phòng
+    List<Booking> findByUserIdOrderByIdDesc(Long userId);
 } 

@@ -125,6 +125,19 @@ export default function Header() {
                         Thông tin cá nhân
                       </button>
                     </li>
+                    {!role === "ROLE_ADMIN" && (
+                      <li>
+                        <button
+                          onClick={() => {
+                            navigate("/admin");
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                        >
+                          Lịch sử đặt phòng
+                        </button>
+                      </li>
+                    )}
                     {role === "ROLE_ADMIN" && (
                       <li>
                         <button

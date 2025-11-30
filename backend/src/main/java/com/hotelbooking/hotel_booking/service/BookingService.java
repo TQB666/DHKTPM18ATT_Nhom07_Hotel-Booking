@@ -4,7 +4,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.hotelbooking.hotel_booking.domain.dto.BookingHistoryDTO;
 import org.springframework.stereotype.Service;
 
 import com.hotelbooking.hotel_booking.domain.Booking;
@@ -119,15 +121,46 @@ public class BookingService {
     public Booking updateBookingStatus(Long id, String newStatus, String newPaymentStatus) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id: " + id));
-
         if (newStatus != null && !newStatus.isEmpty()) {
             booking.setStatus(newStatus);
         }
-
         if (newPaymentStatus != null && !newPaymentStatus.isEmpty()) {
             booking.setPaymentStatus(newPaymentStatus);
         }
-
         return bookingRepository.save(booking);
+    }
+
+    /**
+     Booking history
+     */
+    public List<BookingHistoryDTO> getUserBookingHistory(Long userId) {
+        List<Booking> bookings = bookingRepository.findByUserIdOrderByIdDesc(userId);
+        return bookings.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+    private BookingHistoryDTO convertToDTO(Booking booking) {
+        BookingHistoryDTO dto = new BookingHistoryDTO();
+        dto.setId(booking.getId());
+        dto.setConfirmationToken(booking.getConfirmationToken());
+        dto.setStatus(booking.getStatus());
+        dto.setTotalPrice(booking.getTotalPrice());
+
+        // Map chi tiết phòng
+        List<BookingHistoryDTO.BookingDetailDTO> detailDTOs = booking.getBookingDetails().stream().map(detail -> {
+            BookingHistoryDTO.BookingDetailDTO detailDTO = new BookingHistoryDTO.BookingDetailDTO();
+            detailDTO.setCheckIn(detail.getCheckIn());
+            detailDTO.setCheckOut(detail.getCheckOut());
+            detailDTO.setPrice(detail.getPrice());
+            detailDTO.setQuantity((int) detail.getQuantity());
+
+            // Giả sử bạn có entity Room liên kết
+            if (detail.getRoom() != null) {
+                detailDTO.setRoomName(detail.getRoom().getName());
+                detailDTO.setRoomType(detail.getRoom().getDescription());
+            }
+            return detailDTO;
+        }).collect(Collectors.toList());
+
+        dto.setDetails(detailDTOs);
+        return dto;
     }
 }
