@@ -27,6 +27,7 @@ import AdminVoucherList from "./pages/admin/AdminVoucher";
 import AdminVoucherDetail from "./pages/admin/AdminVoucherDetail";
 import AdminVoucherEdit from "./pages/admin/AdminVoucherEdit";
 import AdminVoucherCreate from "./pages/admin/AdminVoucherAdd";
+import BookingHistory from "./pages/client/BookingHistory";
 export default function App() {
   return (
     <Router>
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/booking-success" element={<BookingSuccess />} />
+        <Route path="/history" element={<BookingHistory />} />
         {/* === Protected routes (ĐÃ SỬA ĐÚNG) === */}
         {/* Route 1: Trang Admin Dashboard */}
         <Route
