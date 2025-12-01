@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +17,9 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import lombok.AllArgsConstructor;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 @Service
 @AllArgsConstructor
 public class HotelService {
@@ -41,8 +44,49 @@ public class HotelService {
         return response;
     }
 
-    public List<Hotel> searchHotels(String city, String name, Integer stars,
-                                Double minPrice, Double maxPrice) {
+//    public List<Hotel> searchHotels(String city, String name, Integer stars,
+//                                Double minPrice, Double maxPrice) {
+//    Specification<Hotel> spec = (root, query, cb) -> {
+//        List<Predicate> predicates = new ArrayList<>();
+//
+//        if (city != null && !city.isEmpty()) {
+//            predicates.add(cb.like(cb.lower(root.get("city")), "%" + city.toLowerCase() + "%"));
+//        }
+//        if (name != null && !name.isEmpty()) {
+//            predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+//        }
+//        if (stars != null) {
+//            predicates.add(cb.equal(root.get("rating"), stars));
+//        }
+//
+//        // Subquery để tính AVG(Room.price)
+//        if (minPrice != null || maxPrice != null) {
+//            Subquery<Double> sub = query.subquery(Double.class);
+//            Root<Room> roomRoot = sub.from(Room.class);
+//            sub.select(cb.avg(roomRoot.get("price")))
+//               .where(cb.equal(roomRoot.get("hotel"), root));
+//
+//            if (minPrice != null) {
+//                predicates.add(cb.greaterThanOrEqualTo(sub, minPrice));
+//            }
+//            if (maxPrice != null) {
+//                predicates.add(cb.lessThanOrEqualTo(sub, maxPrice));
+//            }
+//        }
+//
+//        return cb.and(predicates.toArray(new Predicate[0]));
+//    };
+//
+//    return hotelRepository.findAll(spec);
+//    }
+// Chỉnh sửa pagination phần trang
+public Page<Hotel> searchHotels(String city, String name, Integer stars,
+                                Double minPrice, Double maxPrice,
+                                int page, int size) { // Thêm tham số page, size
+
+    // Tạo đối tượng Pageable
+    Pageable pageable = PageRequest.of(page, size);
+
     Specification<Hotel> spec = (root, query, cb) -> {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -56,12 +100,12 @@ public class HotelService {
             predicates.add(cb.equal(root.get("rating"), stars));
         }
 
-        // Subquery để tính AVG(Room.price)
+        // Xử lý Subquery giá (giữ nguyên logic của bạn)
         if (minPrice != null || maxPrice != null) {
             Subquery<Double> sub = query.subquery(Double.class);
             Root<Room> roomRoot = sub.from(Room.class);
             sub.select(cb.avg(roomRoot.get("price")))
-               .where(cb.equal(roomRoot.get("hotel"), root));
+                    .where(cb.equal(roomRoot.get("hotel"), root));
 
             if (minPrice != null) {
                 predicates.add(cb.greaterThanOrEqualTo(sub, minPrice));
@@ -74,9 +118,9 @@ public class HotelService {
         return cb.and(predicates.toArray(new Predicate[0]));
     };
 
-    return hotelRepository.findAll(spec);
-    }
-
+    // Trả về Page thay vì List
+    return hotelRepository.findAll(spec, pageable);
+}
     public Hotel getHotelById(Long id){
         return hotelRepository.findById(id).get();
     }
