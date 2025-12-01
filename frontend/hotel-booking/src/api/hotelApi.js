@@ -12,22 +12,27 @@ export const countHotelByCity = async () => {
 };
 
 //Tim khach san theo city, name, stars, minPrice, maxPrice
-export const getHotels = async ({ city, name, stars, minPrice, maxPrice }) => {
-  try {
-    const params = {};
+// export const getHotels = async ({ city, name, stars, minPrice, maxPrice }) => {
+//   try {
+//     const params = {};
 
-    if (city && city.trim() !== "") params.city = city;
-    if (name && name.trim() !== "") params.name = name;
-    if (stars && stars.length > 0) params.stars = stars.join(",");
-    if (minPrice) params.minPrice = minPrice;
-    if (maxPrice) params.maxPrice = maxPrice;
+//     if (city && city.trim() !== "") params.city = city;
+//     if (name && name.trim() !== "") params.name = name;
+//     if (stars && stars.length > 0) params.stars = stars.join(",");
+//     if (minPrice) params.minPrice = minPrice;
+//     if (maxPrice) params.maxPrice = maxPrice;
 
-    const res = await api.get("/hotels/filter", { params }); // axios sẽ tự build query string
-    return res.data;
-  } catch (error) {
-    console.error("Lỗi khi gọi API getHotels:", error);
-    throw error;
-  }
+//     const res = await api.get("/hotels/filter", { params }); // axios sẽ tự build query string
+//     return res.data;
+//   } catch (error) {
+//     console.error("Lỗi khi gọi API getHotels:", error);
+//     throw error;
+//   }
+// };
+export const getHotels = async (filters) => {
+  // filters bây giờ sẽ bao gồm cả { city, page, size, ... }
+  const response = await api.get("/hotels/filter", { params: filters });
+  return response.data; // Trả về đối tượng Page (có content, totalPages...)
 };
 
 // Tìm khách sạn theo id
