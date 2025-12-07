@@ -2,6 +2,7 @@ package com.hotelbooking.hotel_booking.domain;
 
 import java.util.Set;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -60,6 +61,6 @@ public class Hotel {
     @OneToMany(mappedBy = "hotel")
     Set<Review> reviews;
 
-    @OneToMany(mappedBy = "hotel")
+    @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Image> images;
 }

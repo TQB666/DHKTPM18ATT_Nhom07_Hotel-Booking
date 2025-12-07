@@ -4,8 +4,10 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.hotelbooking.hotel_booking.domain.Hotel;
+import com.hotelbooking.hotel_booking.domain.Image;
 import com.hotelbooking.hotel_booking.service.HotelService;
 
 import lombok.AllArgsConstructor;
@@ -53,6 +55,15 @@ public class AdminHotelController {
     public Hotel updateHotel(@PathVariable Long id, @RequestBody Hotel hotel) {
         return hotelService.updateHotel(id, hotel);
     }
+
+    @PostMapping("/{id}/images")
+    public List<Image> uploadGalleryImages(
+            @PathVariable Long id,
+            @RequestParam("files") List<MultipartFile> files) {
+
+        return hotelService.uploadGalleryImages(id, files);
+    }
+
 
     // // Xóa khách sạn
     // @DeleteMapping("/{id}")

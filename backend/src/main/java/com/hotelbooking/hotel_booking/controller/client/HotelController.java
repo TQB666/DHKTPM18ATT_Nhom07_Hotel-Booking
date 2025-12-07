@@ -1,6 +1,5 @@
 package com.hotelbooking.hotel_booking.controller.client;
 
-import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;

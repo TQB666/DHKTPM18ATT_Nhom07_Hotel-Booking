@@ -122,3 +122,50 @@ export const deleteTag = async (id) => {
     throw error;
   }
 };
+
+// 
+
+export const getAllFacilities = async () => {
+  try {
+    const res = await api.get("/admin/facilities");
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API getAllFacilities:", error);
+    throw error;
+  }
+};
+
+export const createFacility = async (facilityData) => {
+  try {
+    const res = await api.post("/admin/facilities", facilityData);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API createFacility:", error);
+    
+    if (error.response?.status === 400) {
+      throw new Error("Tên tiện ích đã tồn tại");
+    }
+    
+    throw error;
+  }
+};
+
+export const addFacilityToHotel = async (hotelId, data) => {
+  try {
+    const res = await api.post(`/admin/hotels/${hotelId}/facilities`, data);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API addFacilityToHotel:", error);
+    throw error;
+  }
+};
+
+export const deleteFacilityFromHotel = async (hotelId, facilityId) => {
+  try {
+    const res = await api.delete(`/admin/hotels/${hotelId}/facilities/${facilityId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API deleteFacilityFromHotel:", error);
+    throw error;
+  }
+};

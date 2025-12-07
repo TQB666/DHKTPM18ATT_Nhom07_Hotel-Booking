@@ -6,9 +6,13 @@ import axios from "axios";
 export default function EditHotel() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState(null);
-  const [loading, setLoading] = useState(true);
 
+  const [form, setForm] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  // 🟦 Tải dữ liệu khách sạn
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -27,7 +31,9 @@ export default function EditHotel() {
           detailDesc: res.data.detailDesc,
           image: res.data.image,
         });
+        setPreview(res.data.image);
         setLoading(false);
+        
       })
       .catch((err) => {
         console.error(err);
@@ -39,9 +45,43 @@ export default function EditHotel() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // 🟦 Xử lý chọn ảnh → upload lên backend
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Hiển thị preview trước
+    setPreview(URL.createObjectURL(file));
+
+    setUploading(true);
+
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await axios.post("http://localhost:8080/api/upload", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      // Lưu URL Cloudinary vào form
+      setForm({ ...form, image: res.data.url });
+
+    } catch (err) {
+      console.error("Upload lỗi", err);
+    }
+
+    setUploading(false);
+  };
+
+  // 🟦 Gửi form cập nhật
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
+
     const token = localStorage.getItem("token");
 
     axios
@@ -56,7 +96,7 @@ export default function EditHotel() {
         console.error(err);
         setLoading(false);
       });
-    };
+  };
 
   if (loading || !form) return <div className="p-8 text-gray-700">Đang tải...</div>;
 
@@ -64,7 +104,10 @@ export default function EditHotel() {
     <div className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow">
         <h1 className="text-2xl font-bold mb-6">Sửa khách sạn</h1>
+
         <form className="space-y-4" onSubmit={handleSubmit}>
+          
+          {/* Input: Tên */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Tên khách sạn</label>
             <input
@@ -72,11 +115,11 @@ export default function EditHotel() {
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-              required
+              className="mt-1 w-full border border-gray-300 rounded-md p-2"
             />
           </div>
 
+          {/* Input: Địa chỉ */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Địa chỉ</label>
             <input
@@ -84,11 +127,11 @@ export default function EditHotel() {
               name="address"
               value={form.address}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-              required
+              className="mt-1 w-full border border-gray-300 rounded-md p-2"
             />
           </div>
 
+          {/* Thành phố + Điện thoại */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Thành phố</label>
@@ -97,7 +140,7 @@ export default function EditHotel() {
                 name="city"
                 value={form.city}
                 onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                className="mt-1 w-full border border-gray-300 rounded-md p-2"
               />
             </div>
 
@@ -108,11 +151,12 @@ export default function EditHotel() {
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                className="mt-1 w-full border border-gray-300 rounded-md p-2"
               />
             </div>
           </div>
 
+          {/* Rating */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Đánh giá (1-5)</label>
             <input
@@ -122,43 +166,58 @@ export default function EditHotel() {
               max={5}
               value={form.rating}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+              className="mt-1 w-full border border-gray-300 rounded-md p-2"
             />
           </div>
 
+          {/* Ảnh: Preview + Chọn file */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Ảnh đại diện (URL)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Ảnh đại diện</label>
+
+            {/* IMAGE PREVIEW */}
+            {preview && (
+              <img
+                src={preview}
+                alt="Preview"
+                className="w-40 h-32 object-cover rounded border mb-3"
+              />
+            )}
+
             <input
-              type="text"
-              name="image"
-              value={form.image}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="block w-full"
             />
+
+            {uploading && <p className="text-blue-600 mt-1">Đang upload ảnh...</p>}
           </div>
 
+          {/* Mô tả ngắn */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Mô tả ngắn</label>
             <textarea
               name="shortDesc"
               value={form.shortDesc}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+              className="mt-1 w-full border border-gray-300 rounded-md p-2"
               rows={2}
             ></textarea>
           </div>
 
+          {/* Mô tả chi tiết */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Mô tả chi tiết</label>
             <textarea
               name="detailDesc"
               value={form.detailDesc}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+              className="mt-1 w-full border border-gray-300 rounded-md p-2"
               rows={4}
             ></textarea>
           </div>
 
+          {/* Buttons */}
           <div className="flex gap-4 mt-4">
             <button
               type="submit"
@@ -167,6 +226,7 @@ export default function EditHotel() {
             >
               {loading ? "Đang lưu..." : "Lưu thay đổi"}
             </button>
+
             <button
               type="button"
               onClick={() => navigate("/admin/hotel")}
