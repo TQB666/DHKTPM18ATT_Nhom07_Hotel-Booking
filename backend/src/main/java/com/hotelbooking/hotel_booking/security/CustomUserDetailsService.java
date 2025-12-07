@@ -9,17 +9,17 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.hotelbooking.hotel_booking.domain.User;
-import com.hotelbooking.hotel_booking.service.UserService;
+import com.hotelbooking.hotel_booking.repository.UserRepository;
 
 import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @Service
 public class CustomUserDetailsService implements UserDetailsService{
-    private final UserService userService;
+    private final UserRepository userRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userService.getUserByEmail(username);
+        User user = userRepository.findByEmail(username).orElse(null);
         if(user == null){
             throw new UsernameNotFoundException("User not found");
         } 

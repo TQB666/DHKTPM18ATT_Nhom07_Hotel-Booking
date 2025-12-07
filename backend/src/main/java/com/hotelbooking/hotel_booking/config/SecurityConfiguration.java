@@ -21,16 +21,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.hotelbooking.hotel_booking.security.CustomUserDetailsService;
 import com.hotelbooking.hotel_booking.security.JwtAuthenticationFilter;
 import com.hotelbooking.hotel_booking.security.JwtUtil;
-import com.hotelbooking.hotel_booking.service.UserService;
+import com.hotelbooking.hotel_booking.repository.UserRepository;
 
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfiguration {
 
-    private final UserService userService;
+    private final UserRepository userRepository;
 
-    public SecurityConfiguration(UserService userService){
-        this.userService = userService;
+    public SecurityConfiguration(UserRepository userRepository){
+        this.userRepository = userRepository;
     }
 
     @Bean
@@ -40,7 +40,7 @@ public class SecurityConfiguration {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return new CustomUserDetailsService(userService);
+        return new CustomUserDetailsService(userRepository);
     }
 
     @Bean
