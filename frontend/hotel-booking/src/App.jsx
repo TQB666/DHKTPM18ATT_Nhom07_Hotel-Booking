@@ -28,6 +28,8 @@ import AdminVoucherDetail from "./pages/admin/AdminVoucherDetail";
 import AdminVoucherEdit from "./pages/admin/AdminVoucherEdit";
 import AdminVoucherCreate from "./pages/admin/AdminVoucherAdd";
 import BookingHistory from "./pages/client/BookingHistory";
+import ProfilePage from "./pages/client/ProfilePage";
+import ChangePasswordPage from "./pages/client/ChangePasswordPage";
 export default function App() {
   return (
     <Router>
@@ -43,6 +45,8 @@ export default function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/booking-success" element={<BookingSuccess />} />
         <Route path="/history" element={<BookingHistory />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
         {/* === Protected routes (ĐÃ SỬA ĐÚNG) === */}
         {/* Route 1: Trang Admin Dashboard */}
         <Route

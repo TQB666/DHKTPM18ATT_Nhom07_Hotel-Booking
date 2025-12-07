@@ -7,10 +7,12 @@ import org.springframework.stereotype.Service;
 import com.hotelbooking.hotel_booking.domain.Role;
 import com.hotelbooking.hotel_booking.domain.User;
 import com.hotelbooking.hotel_booking.domain.dto.SignupDTO;
+import com.hotelbooking.hotel_booking.domain.dto.ChangePasswordDTO;
 import com.hotelbooking.hotel_booking.repository.RoleRepository;
 import com.hotelbooking.hotel_booking.repository.UserRepository;
 
 import lombok.AllArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
 
     public User signupDTOtoUser(SignupDTO signupDTO) {
@@ -45,15 +48,17 @@ public class UserService {
 
     public List<UserDTO> getAllUsersDTO() {
         return userRepository.findAll().stream()
-                .map(user -> new UserDTO(
-                        user.getId(),
-                        user.getFullName(),
-                        user.getEmail(),
-                        user.getPhone(),
-                        user.getAvatar(),
-                        user.getRole() != null ? user.getRole().getName() : null,
-                        null   // bookings chưa load trong danh sách
-                ))
+                .map(user -> {
+                    UserDTO dto = new UserDTO();
+                    dto.setId(user.getId());
+                    dto.setFullName(user.getFullName());
+                    dto.setEmail(user.getEmail());
+                    dto.setPhone(user.getPhone());
+                    dto.setAvatar(user.getAvatar());
+                    dto.setRoleName(user.getRole() != null ? user.getRole().getName() : null);
+                    dto.setCreatedAt(user.getCreatedAt());
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -107,15 +112,35 @@ public class UserService {
 
         userRepository.save(user);
 
-        return new UserDTO(
-                user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getAvatar(),
-                user.getRole() != null ? user.getRole().getName() : null,
-                null // không trả bookings khi update
-        );
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setFullName(user.getFullName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setAvatar(user.getAvatar());
+        dto.setRoleName(user.getRole() != null ? user.getRole().getName() : null);
+        dto.setCreatedAt(user.getCreatedAt());
+
+        return dto;
+    }
+
+    public void changePassword(String email, ChangePasswordDTO changePasswordDTO) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Kiểm tra mật khẩu hiện tại
+        if (!passwordEncoder.matches(changePasswordDTO.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("Mật khẩu hiện tại không đúng");
+        }
+
+        // Kiểm tra mật khẩu mới không trùng với mật khẩu cũ
+        if (passwordEncoder.matches(changePasswordDTO.getNewPassword(), user.getPassword())) {
+            throw new RuntimeException("Mật khẩu mới không được trùng với mật khẩu hiện tại");
+        }
+
+        // Mã hóa và lưu mật khẩu mới
+        user.setPassword(passwordEncoder.encode(changePasswordDTO.getNewPassword()));
+        userRepository.save(user);
     }
 
 }
