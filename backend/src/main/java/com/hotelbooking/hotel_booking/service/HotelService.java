@@ -8,10 +8,15 @@ import java.util.Map;
 
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.hotelbooking.hotel_booking.domain.Hotel;
+import com.hotelbooking.hotel_booking.domain.Image;
 import com.hotelbooking.hotel_booking.domain.Room;
 import com.hotelbooking.hotel_booking.repository.HotelRepository;
+import com.hotelbooking.hotel_booking.repository.ImageRepository;
 
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -24,8 +29,8 @@ import org.springframework.data.domain.Pageable;
 @AllArgsConstructor
 public class HotelService {
     private final HotelRepository hotelRepository;
-    
-    
+    private Cloudinary cloudinary;
+    private ImageRepository imageRepository;
     public List<Hotel> getAllHotels(){
         return hotelRepository.findAll();
     }
@@ -131,19 +136,50 @@ public Page<Hotel> searchHotels(String city, String name, Integer stars,
 
     
     public Hotel updateHotel(Long id, Hotel updatedHotel) {
-    Hotel existingHotel = hotelRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Hotel not found with id: " + id));
+        Hotel existingHotel = hotelRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Hotel not found with id: " + id));
 
-    // Update các field
-    existingHotel.setName(updatedHotel.getName());
-    existingHotel.setCity(updatedHotel.getCity());
-    existingHotel.setAddress(updatedHotel.getAddress());
-    existingHotel.setRating(updatedHotel.getRating());
-    existingHotel.setDetailDesc(updatedHotel.getDetailDesc());
-    existingHotel.setPhone(updatedHotel.getPhone()); 
-    existingHotel.setImage(updatedHotel.getImage()); 
-    return hotelRepository.save(existingHotel);
-}
+        // Update các field
+        existingHotel.setName(updatedHotel.getName());
+        existingHotel.setCity(updatedHotel.getCity());
+        existingHotel.setAddress(updatedHotel.getAddress());
+        existingHotel.setRating(updatedHotel.getRating());
+        existingHotel.setDetailDesc(updatedHotel.getDetailDesc());
+        existingHotel.setPhone(updatedHotel.getPhone()); 
+        existingHotel.setShortDesc(updatedHotel.getShortDesc()); 
+
+        existingHotel.setImage(updatedHotel.getImage());
+        return hotelRepository.save(existingHotel);
+    }
+
+    public List<Image> uploadGalleryImages(Long hotelId, List<MultipartFile> files) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new RuntimeException("Hotel not found"));
+
+        List<Image> imageList = new ArrayList<>();
+        try {
+            for (MultipartFile file : files) {
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                    "folder", "hotel_booking"
+            ));
+
+            String url = uploadResult.get("secure_url").toString();
+
+            Image img = new Image();
+            img.setHotel(hotel);
+            img.setImageUrl(url);
+            img.setName(file.getOriginalFilename());
+
+            imageList.add(img);
+        }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        
+
+        return imageRepository.saveAll(imageList);
+    }
+
 
 }
 

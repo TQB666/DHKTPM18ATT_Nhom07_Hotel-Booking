@@ -20,7 +20,7 @@ public class AdminUserController {
     @GetMapping
     public List<UserDTO> getAllUsers() {
         List<UserDTO> users = userService.getAllUsersDTO();
-       return userService.getAllUsersDTO();
+       return users;
     }
 
     // Lấy chi tiết user theo ID
