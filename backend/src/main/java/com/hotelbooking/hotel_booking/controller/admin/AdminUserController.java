@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin/users")
@@ -34,11 +35,16 @@ public class AdminUserController {
     }
 
 
-    @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
-        UserDTO updatedUser = userService.updateUser(id, userDTO);
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
+    public ResponseEntity<?> updateUser(
+            @PathVariable Long id,
+            @RequestPart("user") UserDTO userDTO,
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar
+    ) {
+        UserDTO updatedUser = userService.updateUser(id, userDTO, avatar);
         return ResponseEntity.ok(updatedUser);
     }
+
 
 
 

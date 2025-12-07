@@ -13,6 +13,7 @@ import com.hotelbooking.hotel_booking.repository.UserRepository;
 
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CloudinaryService cloudinaryService;
 
 
     public User signupDTOtoUser(SignupDTO signupDTO) {
@@ -97,10 +99,11 @@ public class UserService {
     }
 
 
-    public UserDTO updateUser(Long id, UserDTO userDTO) {
+    public UserDTO updateUser(Long id, UserDTO userDTO, MultipartFile avatar) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Update thông tin cơ bản
         user.setFullName(userDTO.getFullName());
         user.setEmail(userDTO.getEmail());
         user.setPhone(userDTO.getPhone());
@@ -110,8 +113,19 @@ public class UserService {
             user.setRole(role);
         }
 
+        // ⭐ Upload avatar nếu có upload file mới
+        if (avatar != null && !avatar.isEmpty()) {
+            try {
+                String url = cloudinaryService.uploadImage(avatar, "avatars");
+                user.setAvatar(url);
+            } catch (Exception e) {
+                throw new RuntimeException("Lỗi upload ảnh: " + e.getMessage());
+            }
+        }
+
         userRepository.save(user);
 
+        // Trả DTO
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
         dto.setFullName(user.getFullName());
@@ -123,6 +137,7 @@ public class UserService {
 
         return dto;
     }
+
 
     public void changePassword(String email, ChangePasswordDTO changePasswordDTO) {
         User user = userRepository.findByEmail(email)

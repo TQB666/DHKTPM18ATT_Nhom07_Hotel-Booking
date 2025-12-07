@@ -9,21 +9,30 @@ import { ArrowLeft } from "lucide-react"
 export default function AdminUserEdit() {
     const { id } = useParams()
     const navigate = useNavigate()
+
     const [user, setUser] = useState({
         fullName: "",
         email: "",
         phone: "",
-        roleName: "USER"
+        roleName: "USER",
+        avatar: ""
     })
+
+    const [avatarFile, setAvatarFile] = useState(null)
+    const [preview, setPreview] = useState(null)
+
     const [loading, setLoading] = useState(true)
 
+    // -------- LOAD DATA --------
     useEffect(() => {
         const token = localStorage.getItem("token")
+
         axios.get(`http://localhost:8080/api/admin/users/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => {
                 setUser(res.data)
+                setPreview(res.data.avatar)
                 setLoading(false)
             })
             .catch(err => {
@@ -32,21 +41,43 @@ export default function AdminUserEdit() {
             })
     }, [id])
 
+    // -------- HANDLE CHANGE --------
     const handleChange = (e) => {
         const { name, value } = e.target
         setUser(prev => ({ ...prev, [name]: value }))
     }
 
+    // -------- HANDLE IMAGE --------
+    const handleImageChange = (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+
+        setAvatarFile(file)
+        setPreview(URL.createObjectURL(file))
+    }
+
+    // -------- SUBMIT --------
     const handleSubmit = (e) => {
         e.preventDefault()
-        const token = localStorage.getItem("token")
-        console.log("Token:", token);
 
-        axios.put(`http://localhost:8080/api/admin/users/${id}`, user, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        const token = localStorage.getItem("token")
+
+        const formData = new FormData()
+        formData.append(
+            "user",
+            new Blob([JSON.stringify(user)], { type: "application/json" })
+        )
+        if (avatarFile) {
+            formData.append("avatar", avatarFile)
+        }
+
+        axios.put(`http://localhost:8080/api/admin/users/${id}`, formData, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "multipart/form-data"
+            }
         })
-            .then(res => {
-                console.log("Update response:", res.data)
+            .then(() => {
                 alert("Cập nhật user thành công")
                 navigate(`/admin/users/${id}`)
             })
@@ -56,8 +87,10 @@ export default function AdminUserEdit() {
             })
     }
 
+    // -------- UI LOADING --------
     if (loading) return <div className="flex justify-center items-center h-screen">Đang tải...</div>
 
+    // -------- RENDER UI --------
     return (
         <div className="min-h-screen bg-slate-50 flex">
             <Sidebar />
@@ -80,6 +113,8 @@ export default function AdminUserEdit() {
 
                     <CardContent className="space-y-4">
                         <form onSubmit={handleSubmit} className="space-y-4">
+
+                            {/* ===== HỌ TÊN ===== */}
                             <div>
                                 <label className="block text-slate-500 mb-1">Họ và tên</label>
                                 <input
@@ -92,6 +127,7 @@ export default function AdminUserEdit() {
                                 />
                             </div>
 
+                            {/* ===== EMAIL ===== */}
                             <div>
                                 <label className="block text-slate-500 mb-1">Email</label>
                                 <input
@@ -104,6 +140,7 @@ export default function AdminUserEdit() {
                                 />
                             </div>
 
+                            {/* ===== PHONE ===== */}
                             <div>
                                 <label className="block text-slate-500 mb-1">Số điện thoại</label>
                                 <input
@@ -116,6 +153,7 @@ export default function AdminUserEdit() {
                                 />
                             </div>
 
+                            {/* ===== ROLE ===== */}
                             <div>
                                 <label className="block text-slate-500 mb-1">Vai trò</label>
                                 <select
@@ -129,6 +167,27 @@ export default function AdminUserEdit() {
                                 </select>
                             </div>
 
+                            {/* ===== AVATAR UPLOAD ===== */}
+                            <div>
+                                <label className="block text-slate-500 mb-1">Ảnh đại diện</label>
+
+                                {preview && (
+                                    <img
+                                        src={preview}
+                                        className="w-24 h-24 object-cover rounded-full mb-4 border"
+                                        alt="avatar preview"
+                                    />
+                                )}
+
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageChange}
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                />
+                            </div>
+
+                            {/* ===== BUTTONS ===== */}
                             <div className="flex justify-end gap-3 mt-4">
                                 <button
                                     type="button"
@@ -137,6 +196,7 @@ export default function AdminUserEdit() {
                                 >
                                     Hủy
                                 </button>
+
                                 <button
                                     type="submit"
                                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
@@ -144,6 +204,7 @@ export default function AdminUserEdit() {
                                     Lưu
                                 </button>
                             </div>
+
                         </form>
                     </CardContent>
                 </Card>
