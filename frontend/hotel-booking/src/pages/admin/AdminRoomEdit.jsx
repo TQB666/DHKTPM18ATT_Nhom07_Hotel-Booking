@@ -134,6 +134,50 @@ export default function AdminRoomEdit() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validation
+    // Tên phòng: Không null, bắt đầu bằng ký tự in hoa, nhiều hơn 10 ký tự
+    if (!room.name) {
+      alert("Tên phòng không được bỏ trống");
+      return;
+    }
+    if (room.name.length <= 10) {
+      alert("Tên phòng phải nhiều hơn 10 ký tự");
+      return;
+    }
+    if (!/^[A-Z]/.test(room.name)) {
+      alert("Tên phòng phải bắt đầu bằng ký tự in hoa");
+      return;
+    }
+
+    // Số lượng chứa: Không null, lớn hơn 0
+    if (room.capacity <= 0) {
+      alert("Sức chứa phải lớn hơn 0");
+      return;
+    }
+
+    // Giá phòng: Không null, lớn hơn 10000
+    if (room.price <= 10000) {
+      alert("Giá phòng phải lớn hơn 10000 VND");
+      return;
+    }
+
+    // Số lượng phòng: Không null, lớn hơn hoặc bằng 0
+    if (room.quantity < 0) {
+      alert("Số lượng phòng phải lớn hơn hoặc bằng 0");
+      return;
+    }
+
+    // Image: Không null, bắt đầu bằng http
+    if (!room.image) {
+      alert("Vui lòng upload ảnh phòng");
+      return;
+    }
+    if (!room.image.startsWith("http")) {
+      alert("URL ảnh không hợp lệ");
+      return;
+    }
+
     setSubmitting(true);
     const token = localStorage.getItem("token");
 
@@ -191,7 +235,7 @@ export default function AdminRoomEdit() {
               {/* Tên phòng */}
               <div>
                 <label className="block text-slate-600 font-medium mb-2">
-                  Tên phòng
+                  Tên phòng (bắt đầu in hoa, tối thiểu 11 ký tự)
                 </label>
                 <input
                   type="text"
@@ -202,12 +246,27 @@ export default function AdminRoomEdit() {
                   placeholder="Nhập tên phòng"
                   required
                 />
+                {room.name && (
+                  <p
+                    className={`text-sm mt-1 ${
+                      /^[A-Z]/.test(room.name) && room.name.length > 10
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {room.name.length <= 10
+                      ? `Tối thiểu 11 ký tự (hiện có ${room.name.length})`
+                      : !/^[A-Z]/.test(room.name)
+                      ? "Phải bắt đầu bằng ký tự in hoa"
+                      : "✓ Hợp lệ"}
+                  </p>
+                )}
               </div>
 
               {/* Sức chứa */}
               <div>
                 <label className="block text-slate-600 font-medium mb-2">
-                  Sức chứa (người)
+                  Sức chứa (người) (lớn hơn 0)
                 </label>
                 <input
                   type="number"
@@ -223,7 +282,7 @@ export default function AdminRoomEdit() {
               {/* Giá */}
               <div>
                 <label className="block text-slate-600 font-medium mb-2">
-                  Giá/đêm (VND)
+                  Giá/đêm (VND) (lớn hơn hoặc bằng 10000)
                 </label>
                 <input
                   type="number"
@@ -231,7 +290,7 @@ export default function AdminRoomEdit() {
                   value={room.price}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="0"
+                  min="10000"
                   step="1000"
                   required
                 />
@@ -240,7 +299,7 @@ export default function AdminRoomEdit() {
               {/* Số lượng phòng */}
               <div>
                 <label className="block text-slate-600 font-medium mb-2">
-                  Số lượng phòng
+                  Số lượng phòng (≥0)
                 </label>
                 <input
                   type="number"
@@ -274,7 +333,7 @@ export default function AdminRoomEdit() {
               {/* Ảnh URL */}
               <div>
                 <label className="block text-slate-600 font-medium mb-2">
-                  Ảnh phòng
+                  Ảnh phòng (bắt đầu bằng http)
                 </label>
 
                 {room.image && (

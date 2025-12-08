@@ -129,14 +129,51 @@ export default function AdminRoomAdd() {
     e.preventDefault();
 
     // Validation
-    if (
-      !form.name ||
-      !form.hotelId ||
-      form.capacity < 1 ||
-      form.price < 0 ||
-      form.quantity < 1
-    ) {
-      alert("Vui lòng điền đầy đủ các trường bắt buộc");
+    // Tên phòng: Không null, bắt đầu bằng ký tự in hoa, nhiều hơn 10 ký tự
+    if (!form.name) {
+      alert("Tên phòng không được bỏ trống");
+      return;
+    }
+    if (form.name.length <= 10) {
+      alert("Tên phòng phải nhiều hơn 10 ký tự");
+      return;
+    }
+    if (!/^[A-Z]/.test(form.name)) {
+      alert("Tên phòng phải bắt đầu bằng ký tự in hoa");
+      return;
+    }
+
+    // Khách sạn: Không null
+    if (!form.hotelId) {
+      alert("Vui lòng chọn khách sạn");
+      return;
+    }
+
+    // Số lượng chứa: Không null, lớn hơn 0
+    if (form.capacity <= 0) {
+      alert("Sức chứa phải lớn hơn 0");
+      return;
+    }
+
+    // Giá phòng: Không null, lớn hơn 10000
+    if (form.price <= 10000) {
+      alert("Giá phòng phải lớn hơn 10000 VND");
+      return;
+    }
+
+    // Số lượng phòng: Không null, lớn hơn hoặc bằng 0
+    if (form.quantity < 0) {
+      alert("Số lượng phòng phải lớn hơn hoặc bằng 0");
+      return;
+    }
+
+    // Image: Không null, bắt đầu bằng http
+    if (!form.image) {
+      alert("Vui lòng upload ảnh phòng");
+      return;
+    }
+    if (!form.image.startsWith("http")) {
+      alert("URL ảnh không hợp lệ");
       return;
     }
 
@@ -200,23 +237,40 @@ export default function AdminRoomAdd() {
 
           {/* Tên phòng */}
           <div>
-            <label className="block text-sm font-medium">Tên phòng *</label>
+            <label className="block text-sm font-medium">
+              Tên phòng * (bắt đầu in hoa, tối thiểu 11 ký tự)
+            </label>
             <input
               type="text"
               name="name"
               value={form.name}
               onChange={handleChange}
               className="mt-1 w-full border rounded-md p-2"
-              placeholder="vd: Phòng Deluxe, Phòng Standard..."
+              placeholder="vd: Phòng Deluxe Suite, Phòng Standard Plus..."
               required
             />
+            {form.name && (
+              <p
+                className={`text-sm mt-1 ${
+                  /^[A-Z]/.test(form.name) && form.name.length > 10
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {form.name.length <= 10
+                  ? `Tối thiểu 11 ký tự (hiện có ${form.name.length})`
+                  : !/^[A-Z]/.test(form.name)
+                  ? "Phải bắt đầu bằng ký tự in hoa"
+                  : "✓ Hợp lệ"}
+              </p>
+            )}
           </div>
 
           {/* Sức chứa + Giá + Số lượng */}
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium">
-                Sức chứa (người) *
+                Sức chứa (người) * (lớn hơn 0)
               </label>
               <input
                 type="number"
@@ -231,29 +285,29 @@ export default function AdminRoomAdd() {
 
             <div>
               <label className="block text-sm font-medium">
-                Giá/đêm (VND) *
+                Giá/đêm (VND) * (lớn hơn hoặc bằng 10000)
               </label>
               <input
                 type="number"
                 name="price"
-                min={0}
+                min={10000}
                 step={1000}
                 value={form.price}
                 onChange={handleChange}
                 className="mt-1 w-full border rounded-md p-2"
-                placeholder="0"
+                placeholder="10000"
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium">
-                Số lượng phòng *
+                Số lượng phòng * (≥0)
               </label>
               <input
                 type="number"
                 name="quantity"
-                min={1}
+                min={0}
                 value={form.quantity}
                 onChange={handleChange}
                 className="mt-1 w-full border rounded-md p-2"
@@ -280,7 +334,9 @@ export default function AdminRoomAdd() {
 
           {/* Upload ảnh */}
           <div>
-            <label className="block text-sm font-medium mb-2">Ảnh phòng</label>
+            <label className="block text-sm font-medium mb-2">
+              Ảnh phòng *
+            </label>
 
             {form.image && (
               <div className="mb-4 flex items-center gap-3">
