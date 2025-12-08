@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import Sidebar from "@/components/admin/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,11 @@ export default function AdminRoomEdit() {
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -55,6 +60,76 @@ export default function AdminRoomEdit() {
         : value;
 
     setRoom((prev) => ({ ...prev, [name]: finalValue }));
+  };
+
+  // Upload ảnh → backend → Cloudinary
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Vui lòng chọn một file ảnh");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Kích thước ảnh không được vượt quá 5MB");
+      return;
+    }
+
+    // Hiển thị ảnh preview (không upload ngay)
+    setImagePreview(URL.createObjectURL(file));
+    setSelectedFile(file);
+    setShowImagePreview(true);
+  };
+
+  // Thực hiện upload ảnh khi người dùng ấn xác nhận
+  const handleConfirmUpload = async () => {
+    if (!selectedFile) return;
+
+    setUploading(true);
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
+    try {
+      const res = await axios.post(
+        "http://localhost:8080/api/upload",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // Lưu URL Cloudinary vào form
+      setRoom({ ...room, image: res.data.url });
+      alert("Upload ảnh thành công!");
+      setShowImagePreview(false);
+      setImagePreview("");
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (err) {
+      console.error("Upload lỗi:", err);
+      alert("Lỗi khi upload ảnh");
+    }
+
+    setUploading(false);
+  };
+
+  const handleCancelImagePreview = () => {
+    setShowImagePreview(false);
+    setImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = (e) => {
@@ -199,26 +274,55 @@ export default function AdminRoomEdit() {
               {/* Ảnh URL */}
               <div>
                 <label className="block text-slate-600 font-medium mb-2">
-                  Ảnh (URL)
+                  Ảnh phòng
                 </label>
-                <input
-                  type="text"
-                  name="image"
-                  value={room.image}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Nhập URL ảnh phòng"
-                />
+
                 {room.image && (
-                  <div className="mt-3">
-                    <p className="text-slate-600 text-sm mb-2">Preview ảnh:</p>
+                  <div className="mb-4 flex items-center gap-3">
                     <img
                       src={room.image}
-                      alt="Room preview"
-                      className="w-48 h-40 object-cover rounded-lg"
-                      onError={() => console.error("Ảnh không tìm thấy")}
+                      alt="Room"
+                      className="w-32 h-24 object-cover rounded border"
                     />
+                    <div>
+                      <p className="text-sm text-slate-600 font-medium">
+                        Ảnh hiện tại
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRoom({ ...room, image: "" });
+                          setImagePreview("");
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
+                          }
+                        }}
+                        className="text-sm text-red-600 hover:text-red-700 mt-1"
+                      >
+                        Xóa ảnh
+                      </button>
+                    </div>
                   </div>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="block w-full text-sm text-slate-600
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-600
+                    hover:file:bg-blue-100"
+                  disabled={uploading}
+                />
+
+                {uploading && (
+                  <p className="text-blue-600 mt-2 text-sm">
+                    Đang upload ảnh...
+                  </p>
                 )}
               </div>
 
@@ -257,6 +361,62 @@ export default function AdminRoomEdit() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Image Preview Modal */}
+        {showImagePreview && imagePreview && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Xem trước ảnh phòng
+                </h3>
+                <button
+                  onClick={handleCancelImagePreview}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body - Preview Image */}
+              <div className="px-6 py-8 flex justify-center bg-gray-50">
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-w-sm max-h-96 rounded-lg object-cover"
+                  />
+                </div>
+              </div>
+
+              {/* Footer - Action Buttons */}
+              <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
+                <button
+                  onClick={handleCancelImagePreview}
+                  disabled={uploading}
+                  className="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg font-medium hover:bg-gray-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleConfirmUpload}
+                  disabled={uploading}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Đang tải...
+                    </>
+                  ) : (
+                    "Xác nhận upload"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

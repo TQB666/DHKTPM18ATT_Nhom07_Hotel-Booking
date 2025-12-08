@@ -140,7 +140,10 @@ export default function AdminRoomPage() {
                   </div>
 
                   {/* Add Button */}
-                  <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold whitespace-nowrap">
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold whitespace-nowrap"
+                    onClick={() => navigate(`/admin/room/add`)}
+                  >
                     <Plus size={20} />
                     Thêm phòng
                   </button>
