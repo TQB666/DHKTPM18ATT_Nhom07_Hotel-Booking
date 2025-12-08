@@ -1,6 +1,11 @@
-"use client"
+"use client";
+
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import Sidebar from "@/components/admin/Sidebar";
-import { useState } from "react"
+import api from "@/config/axiosConfig";
+
 import {
     BarChart,
     Bar,
@@ -13,301 +18,365 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
-} from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Search, Eye, Trash2, Edit } from "lucide-react"
+} from "recharts";
+import {
+    CalendarDays,
+    DollarSign,
+    Home,
+    Percent,
+    TrendingUp,
+    BedDouble,
+    Users,
+    Receipt
+} from "lucide-react";
 
-const revenueData = [
-    { month: "Jan", revenue: 24000, bookings: 40 },
-    { month: "Feb", revenue: 18000, bookings: 32 },
-    { month: "Mar", revenue: 28000, bookings: 45 },
-    { month: "Apr", revenue: 35000, bookings: 52 },
-    { month: "May", revenue: 42000, bookings: 68 },
-    { month: "Jun", revenue: 38000, bookings: 61 },
-]
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Search, Eye, Trash2, Edit } from "lucide-react";
 
-const occupancyData = [
-    { name: "Phòng đơn", value: 65 },
-    { name: "Phòng đôi", value: 78 },
-    { name: "Phòng suite", value: 45 },
-    { name: "Phòng tổng thống", value: 25 },
-]
-
-const bookings = [
-    {
-        id: 1,
-        guest: "Nguyễn Văn A",
-        room: "Phòng đôi 101",
-        checkIn: "2025-01-15",
-        checkOut: "2025-01-18",
-        status: "Confirmed",
-        total: "2.400.000đ",
-    },
-    {
-        id: 2,
-        guest: "Trần Thị B",
-        room: "Phòng suite 205",
-        checkIn: "2025-01-16",
-        checkOut: "2025-01-20",
-        status: "Checked In",
-        total: "4.800.000đ",
-    },
-    {
-        id: 3,
-        guest: "Lê Văn C",
-        room: "Phòng đơn 301",
-        checkIn: "2025-01-17",
-        checkOut: "2025-01-19",
-        status: "Pending",
-        total: "1.600.000đ",
-    },
-    {
-        id: 4,
-        guest: "Phạm Thị D",
-        room: "Phòng đôi 102",
-        checkIn: "2025-01-18",
-        checkOut: "2025-01-22",
-        status: "Confirmed",
-        total: "3.200.000đ",
-    },
-]
-
-const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6"]
+const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function AdminDashboard() {
-    const [searchTerm, setSearchTerm] = useState("")
+    const [dashboard, setDashboard] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [deletingId, setDeletingId] = useState(null);
+    const [error, setError] = useState(null);
 
-    const filteredBookings = bookings.filter(
-        (booking) =>
-            booking.guest.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            booking.room.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const navigate = useNavigate();
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case "Confirmed":
-                return "bg-blue-100 text-blue-800"
-            case "Checked In":
-                return "bg-green-100 text-green-800"
-            case "Pending":
-                return "bg-yellow-100 text-yellow-800"
-            default:
-                return "bg-gray-100 text-gray-800"
+    useEffect(() => {
+        fetchDashboard();
+    }, []);
+
+    async function fetchDashboard() {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await api.get("/admin/dashboard");
+            setDashboard(res.data);
+        } catch (err) {
+            console.error("Lỗi load dashboard:", err);
+            setError(err.response?.data || err.message || "Lỗi khi tải dữ liệu");
+        } finally {
+            setLoading(false);
         }
     }
 
+    async function handleDeleteBooking(id) {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa booking này?")) return;
+
+        setDeletingId(id);
+
+        try {
+            await api.delete(`/admin/bookings/${id}`);
+
+            setDashboard((prev) => {
+                if (!prev) return prev;
+
+                return {
+                    ...prev,
+                    recentBookings: prev.recentBookings.filter((b) => b.id !== id),
+                    totalBookings: prev.totalBookings - 1,
+                };
+            });
+
+            alert("Xóa booking thành công");
+        } catch (err) {
+            alert("Xóa thất bại: " + (err.response?.data || err.message));
+        } finally {
+            setDeletingId(null);
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex">
+                <Sidebar />
+                <div className="flex-1 p-8">
+                    <div className="text-center py-20 text-slate-600">Đang tải dashboard...</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex">
+                <Sidebar />
+                <div className="flex-1 p-8">
+                    <div className="text-red-600">Lỗi khi tải dashboard: {String(error)}</div>
+                </div>
+            </div>
+        );
+    }
+
+    const recent = dashboard?.recentBookings ?? [];
+
+    const revenueData = [
+        {
+            month: "Tháng này",
+            revenue: dashboard?.monthlyRevenue ?? 0,
+            bookings: dashboard?.totalBookings ?? 0,
+        },
+    ];
+
+
+    const occupancyData = [
+        { name: "Chiếm dụng", value: Math.round((dashboard?.occupancyRate ?? 0) * 100) / 100 },
+        { name: "Trống", value: Math.max(0, 100 - (dashboard?.occupancyRate ?? 0)) },
+    ];
+
+    const filteredBookings = recent.filter((b) => {
+        const q = searchTerm.trim().toLowerCase();
+        if (!q) return true;
+
+        if (String(b.id).includes(q)) return true;
+        if ((b.status || "").toLowerCase().includes(q)) return true;
+        if ((b.bookingDate || "").toLowerCase().includes(q)) return true;
+        if (String(b.totalPrice).includes(q)) return true;
+
+        return false;
+    });
+
+    const fmtCurrency = (v) =>
+        new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+            maximumFractionDigits: 0,
+        }).format(Number(v ?? 0));
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex">
-            {/* SIDEBAR */}
+        <div className="min-h-screen bg-slate-50 flex">
+            {/* Sidebar */}
             <Sidebar />
-            {/* Header */}
+
             <div className="flex-1">
-                <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
-                    <div className="px-8 py-4">
-                        <div className="flex items-center justify-between">
-                            <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
-                            <div className="flex items-center gap-4">
-                                <Button variant="outline" size="sm">
-                                    Settings
-                                </Button>
-                            </div>
-                        </div>
+                {/* Header */}
+                <div className="bg-white border-b border-slate-200 sticky top-0 z-40 px-8 py-4">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
+                        <Button variant="outline" size="sm" onClick={fetchDashboard}>
+                            Refresh
+                        </Button>
                     </div>
                 </div>
 
-                <div className="p-8">
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <Card className="hover:shadow-lg transition-shadow">
+                <div className="p-8 space-y-8">
+                    {/* TOP CARDS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Tổng đặt phòng */}
+                        <Card>
                             <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-slate-500 text-sm font-medium">Tổng đặt phòng</p>
-                                        <p className="text-3xl font-bold text-slate-900 mt-2">1,248</p>
-                                    </div>
-                                    <div className="bg-blue-100 p-3 rounded-lg">
-                                        <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center text-white text-lg">
-                                            📋
-                                        </div>
-                                    </div>
-                                </div>
+                                <p className="text-slate-500 text-sm">Tổng đặt phòng</p>
+                                <p className="text-3xl font-bold mt-2">{dashboard.totalBookings}</p>
                             </CardContent>
                         </Card>
 
-                        <Card className="hover:shadow-lg transition-shadow">
+                        {/* Doanh thu tháng */}
+                        <Card>
                             <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-slate-500 text-sm font-medium">Doanh thu tháng</p>
-                                        <p className="text-3xl font-bold text-slate-900 mt-2">185M đ</p>
-                                    </div>
-                                    <div className="bg-green-100 p-3 rounded-lg">
-                                        <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center text-white text-lg">
-                                            💰
-                                        </div>
-                                    </div>
-                                </div>
+                                <p className="text-slate-500 text-sm">Doanh thu tháng</p>
+                                <p className="text-3xl font-bold mt-2">{fmtCurrency(dashboard.monthlyRevenue)}</p>
                             </CardContent>
                         </Card>
 
-                        <Card className="hover:shadow-lg transition-shadow">
+                        {/* Phòng trống */}
+                        <Card>
                             <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-slate-500 text-sm font-medium">Phòng trống</p>
-                                        <p className="text-3xl font-bold text-slate-900 mt-2">24</p>
-                                    </div>
-                                    <div className="bg-amber-100 p-3 rounded-lg">
-                                        <div className="w-8 h-8 bg-amber-500 rounded flex items-center justify-center text-white text-lg">
-                                            🛏️
-                                        </div>
-                                    </div>
-                                </div>
+                                <p className="text-slate-500 text-sm">Phòng trống</p>
+                                <p className="text-3xl font-bold mt-2">{dashboard.availableRooms}</p>
                             </CardContent>
                         </Card>
 
-                        <Card className="hover:shadow-lg transition-shadow">
+                        {/* Tỷ lệ chiếm dụng */}
+                        <Card>
                             <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-slate-500 text-sm font-medium">Tỷ lệ chiếm dụng</p>
-                                        <p className="text-3xl font-bold text-slate-900 mt-2">78%</p>
-                                    </div>
-                                    <div className="bg-purple-100 p-3 rounded-lg">
-                                        <div className="w-8 h-8 bg-purple-500 rounded flex items-center justify-center text-white text-lg">
-                                            📊
-                                        </div>
-                                    </div>
-                                </div>
+                                <p className="text-slate-500 text-sm">Tỷ lệ chiếm dụng</p>
+                                <p className="text-3xl font-bold mt-2">
+                                    {Math.round((dashboard.occupancyRate ?? 0) * 100) / 100}%
+                                </p>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Charts Row */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                        {/* Revenue Chart */}
+                    {/* BIỂU ĐỒ */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Bar chart - Doanh thu & Số booking tháng hiện tại */}
                         <Card className="lg:col-span-2">
                             <CardHeader>
-                                <CardTitle>Doanh thu & Đặt phòng</CardTitle>
+                                <CardTitle>Thống kê tháng hiện tại</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={revenueData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                        <XAxis dataKey="month" stroke="#64748b" />
-                                        <YAxis stroke="#64748b" />
-                                        <Tooltip contentStyle={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0" }} />
-                                        <Legend />
-                                        <Bar dataKey="revenue" fill="#0ea5e9" name="Doanh thu (K)" />
-                                        <Bar dataKey="bookings" fill="#8b5cf6" name="Số đặt phòng" />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <div className="w-full h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" />
+                                            <XAxis dataKey="month" tick={{ fill: '#64748b' }} />
+                                            {/* Trục Y trái - Doanh thu */}
+                                            <YAxis
+                                                yAxisId="left"
+                                                tick={{ fill: '#64748b' }}
+                                                tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+                                            />
+                                            {/* Trục Y phải - Số booking */}
+                                            <YAxis
+                                                yAxisId="right"
+                                                orientation="right"
+                                                tick={{ fill: '#64748b' }}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                                                formatter={(value, name) => {
+                                                    if (name === "Doanh thu") return fmtCurrency(value);
+                                                    return value;
+                                                }}
+                                                labelFormatter={() => "Tháng hiện tại"}
+                                            />
+                                            <Legend
+                                                verticalAlign="top"
+                                                height={36}
+                                                iconType="rect"
+                                            />
+                                            <Bar yAxisId="left" dataKey="revenue" fill="#0ea5e9" name="Doanh thu" radius={[8, 8, 0, 0]} />
+                                            <Bar yAxisId="right" dataKey="bookings" fill="#8b5cf6" name="Số booking" radius={[8, 8, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
                             </CardContent>
                         </Card>
 
-                        {/* Occupancy Chart */}
+                        {/* Pie chart - Tỷ lệ chiếm dụng */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Chiếm dụng theo loại phòng</CardTitle>
+                                <CardTitle>Tỷ lệ chiếm dụng phòng</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <PieChart>
-                                        <Pie
-                                            data={occupancyData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={100}
-                                            paddingAngle={2}
-                                            dataKey="value"
-                                        >
-                                            {occupancyData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                                <div className="mt-4 space-y-2">
-                                    {occupancyData.map((item, idx) => (
-                                        <div key={idx} className="flex items-center justify-between text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx] }}></div>
-                                                <span className="text-slate-600">{item.name}</span>
-                                            </div>
-                                            <span className="font-semibold text-slate-900">{item.value}%</span>
-                                        </div>
-                                    ))}
+                                <div className="w-full h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={occupancyData}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={100}
+                                                label={({ value }) => `${value.toFixed(1)}%`}
+                                                labelStyle={{ fontSize: '14px', fontWeight: 'bold', fill: '#fff' }}
+                                            >
+                                                {occupancyData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip
+                                                formatter={(value) => `${value.toFixed(1)}%`}
+                                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                                            />
+                                            <Legend
+                                                verticalAlign="bottom"
+                                                layout="vertical"
+                                                align="center"
+                                                iconType="circle"
+                                                formatter={(value) => value === "Chiếm dụng" ? "Đã đặt" : "Trống"}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Bookings Table */}
+                    {/* DANH SÁCH BOOKING */}
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">
-                                <CardTitle>Danh sách đặt phòng gần đây</CardTitle>
+                                <CardTitle>Booking gần đây</CardTitle>
+
                                 <div className="relative w-64">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                                     <input
-                                        type="text"
-                                        placeholder="Tìm kiếm khách hoặc phòng..."
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                                        className="w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Tìm kiếm..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
                                 </div>
                             </div>
                         </CardHeader>
+
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-slate-200">
-                                            <th className="text-left py-3 px-4 text-slate-600 font-semibold">ID</th>
-                                            <th className="text-left py-3 px-4 text-slate-600 font-semibold">Tên khách</th>
-                                            <th className="text-left py-3 px-4 text-slate-600 font-semibold">Phòng</th>
-                                            <th className="text-left py-3 px-4 text-slate-600 font-semibold">Ngày nhận</th>
-                                            <th className="text-left py-3 px-4 text-slate-600 font-semibold">Ngày trả</th>
-                                            <th className="text-left py-3 px-4 text-slate-600 font-semibold">Trạng thái</th>
-                                            <th className="text-left py-3 px-4 text-slate-600 font-semibold">Tổng tiền</th>
-                                            <th className="text-left py-3 px-4 text-slate-600 font-semibold">Hành động</th>
+                                        <tr className="border-b bg-slate-100">
+                                            <th className="p-3 text-left">ID</th>
+                                            <th className="p-3 text-left">Ngày đặt</th>
+                                            <th className="p-3 text-left">Trạng thái</th>
+                                            <th className="p-3 text-left">Tổng tiền</th>
+                                            <th className="p-3 text-left">Hành động</th>
                                         </tr>
                                     </thead>
+
                                     <tbody>
-                                        {filteredBookings.map((booking) => (
-                                            <tr key={booking.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                                <td className="py-3 px-4 text-slate-900">#{booking.id}</td>
-                                                <td className="py-3 px-4 text-slate-900">{booking.guest}</td>
-                                                <td className="py-3 px-4 text-slate-600">{booking.room}</td>
-                                                <td className="py-3 px-4 text-slate-600">{booking.checkIn}</td>
-                                                <td className="py-3 px-4 text-slate-600">{booking.checkOut}</td>
-                                                <td className="py-3 px-4">
-                                                    <span
-                                                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}
-                                                    >
-                                                        {booking.status}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-4 font-semibold text-slate-900">{booking.total}</td>
-                                                <td className="py-3 px-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600">
-                                                            <Eye className="w-4 h-4" />
-                                                        </button>
-                                                        <button className="p-2 hover:bg-amber-100 rounded-lg transition-colors text-amber-600">
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        <button className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600">
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
+                                        {filteredBookings.length > 0 ? (
+                                            filteredBookings.map((booking) => (
+                                                <tr key={booking.id} className="border-b hover:bg-slate-50">
+                                                    <td className="p-3">#{booking.id}</td>
+                                                    <td className="p-3">
+                                                        {booking.bookingDate
+                                                            ? new Date(booking.bookingDate).toLocaleString("vi-VN")
+                                                            : "N/A"}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span
+                                                            className={`px-3 py-1 text-xs rounded-full font-semibold ${booking.status === "CONFIRMED"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : booking.status === "PENDING"
+                                                                    ? "bg-yellow-100 text-yellow-800"
+                                                                    : "bg-gray-100 text-gray-800"
+                                                                }`}
+                                                        >
+                                                            {booking.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 text-red-600 font-semibold">
+                                                        {fmtCurrency(booking.totalPrice)}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => navigate(`/admin/bookings/${booking.id}`)}
+                                                                className="p-2 hover:bg-blue-100 rounded-lg text-blue-600"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => navigate(`/admin/bookings/edit/${booking.id}`)}
+                                                                className="p-2 hover:bg-amber-100 rounded-lg text-amber-600"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => handleDeleteBooking(booking.id)}
+                                                                className="p-2 hover:bg-red-100 rounded-lg text-red-600"
+                                                                disabled={deletingId === booking.id}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={5} className="p-6 text-center text-slate-500">
+                                                    Không có booking phù hợp
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -316,5 +385,5 @@ export default function AdminDashboard() {
                 </div>
             </div>
         </div>
-    )
+    );
 }
