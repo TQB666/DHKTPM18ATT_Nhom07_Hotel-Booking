@@ -4,7 +4,11 @@ import { Link } from "react-router-dom"; // import Link
 const Sidebar = () => {
   return (
     <aside className="w-64 bg-white border-r border-slate-200 p-6 sticky top-0 h-screen hidden md:block">
-      <h2 className="text-2xl font-bold mb-8 text-slate-900">Hotel Admin</h2>
+      <Link to="/">
+        <h2 className="text-2xl font-bold mb-8 text-slate-900 cursor-pointer">
+          Hotel Admin
+        </h2>
+      </Link>
 
       <nav className="space-y-2">
 
