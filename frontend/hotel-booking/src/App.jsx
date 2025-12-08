@@ -30,6 +30,7 @@ import AdminVoucherCreate from "./pages/admin/AdminVoucherAdd";
 import BookingHistory from "./pages/client/BookingHistory";
 import ProfilePage from "./pages/client/ProfilePage";
 import ChangePasswordPage from "./pages/client/ChangePasswordPage";
+import AdminRoomAdd from "./pages/admin/AdminRoomAdd";
 export default function App() {
   return (
     <Router>
@@ -121,6 +122,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["ROLE_ADMIN"]}>
               <AdminRoomEdit />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/room/add"
+          element={
+            <ProtectedRoute allowedRoles={["ROLE_ADMIN"]}>
+              <AdminRoomAdd />
             </ProtectedRoute>
           }
         />

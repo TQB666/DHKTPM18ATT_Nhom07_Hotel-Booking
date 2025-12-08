@@ -1,16 +1,45 @@
 "use client";
 import Sidebar from "@/components/admin/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Eye, Edit, Trash2, Plus } from "lucide-react";
+import {
+  Search,
+  Eye,
+  Edit,
+  Trash2,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+const ROOMS_PER_PAGE = 5;
+
 export default function AdminRoomPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedHotel, setSelectedHotel] = useState("");
   const [rooms, setRooms] = useState([]);
+  const [hotels, setHotels] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
+  // Fetch hotels
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    axios
+      .get("http://localhost:8080/api/admin/hotels", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        setHotels(res.data);
+      })
+      .catch((err) => console.error("Lỗi load hotels:", err));
+  }, []);
+
+  // Fetch rooms
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -23,13 +52,26 @@ export default function AdminRoomPage() {
       .then((res) => {
         console.log("Room Data:", res.data);
         setRooms(res.data);
+        setCurrentPage(1); // Reset to first page when data changes
       })
       .catch((err) => console.error("Lỗi load rooms:", err));
   }, []);
 
-  const filteredRooms = rooms.filter((room) =>
-    room.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter rooms based on search term and selected hotel
+  const filteredRooms = rooms.filter((room) => {
+    const matchesSearch = room.name
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesHotel =
+      !selectedHotel || room.hotel?.id === parseInt(selectedHotel);
+    return matchesSearch && matchesHotel;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredRooms.length / ROOMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ROOMS_PER_PAGE;
+  const endIndex = startIndex + ROOMS_PER_PAGE;
+  const currentRooms = filteredRooms.slice(startIndex, endIndex);
 
   const statusColor = (status) => {
     if (!status) return "bg-gray-200 text-gray-700";
@@ -40,6 +82,14 @@ export default function AdminRoomPage() {
       UNAVAILABLE: "bg-slate-200 text-slate-700",
     };
     return statusMap[status] || "bg-gray-200 text-gray-700";
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
   return (
@@ -54,20 +104,46 @@ export default function AdminRoomPage() {
         <div className="p-8">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center flex-wrap gap-4">
                 <CardTitle>Danh sách phòng</CardTitle>
 
-                <div className="flex gap-4 items-center">
-                  <div className="relative w-64">
+                <div className="flex gap-4 items-center flex-wrap">
+                  {/* Hotel Filter */}
+                  <select
+                    value={selectedHotel}
+                    onChange={(e) => {
+                      setSelectedHotel(e.target.value);
+                      setCurrentPage(1); // Reset to first page
+                    }}
+                    className="px-4 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Tất cả khách sạn</option>
+                    {hotels.map((hotel) => (
+                      <option key={hotel.id} value={hotel.id}>
+                        {hotel.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Search Input */}
+                  <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input
-                      className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"
+                      className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500"
                       placeholder="Tìm tên phòng..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1); // Reset to first page
+                      }}
                     />
                   </div>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+
+                  {/* Add Button */}
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold whitespace-nowrap"
+                    onClick={() => navigate(`/admin/room/add`)}
+                  >
                     <Plus size={20} />
                     Thêm phòng
                   </button>
@@ -92,8 +168,8 @@ export default function AdminRoomPage() {
                   </thead>
 
                   <tbody>
-                    {filteredRooms.length > 0 ? (
-                      filteredRooms.map((room) => (
+                    {currentRooms.length > 0 ? (
+                      currentRooms.map((room) => (
                         <tr
                           key={room.id}
                           className="border-b hover:bg-slate-50"
@@ -159,6 +235,54 @@ export default function AdminRoomPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination */}
+              {filteredRooms.length > 0 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="text-sm text-slate-600">
+                    Hiển thị {startIndex + 1} đến{" "}
+                    {Math.min(endIndex, filteredRooms.length)} trong{" "}
+                    {filteredRooms.length} phòng
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                      className="flex items-center gap-1 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft size={18} />
+                      Trước
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                        (page) => (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-10 h-10 rounded-lg font-semibold ${
+                              currentPage === page
+                                ? "bg-blue-600 text-white"
+                                : "border border-slate-200 hover:bg-slate-50"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    <button
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className="flex items-center gap-1 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Sau
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
