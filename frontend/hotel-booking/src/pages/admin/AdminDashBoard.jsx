@@ -40,54 +40,49 @@ export default function AdminDashboard() {
     const [dashboard, setDashboard] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
-    const [deletingId, setDeletingId] = useState(null);
     const [error, setError] = useState(null);
-
+    const [hotelId, setHotelId] = useState(null);
+    const [hotels, setHotels] = useState([]);
     const navigate = useNavigate();
+    const [hotelSearch, setHotelSearch] = useState("");
+
 
     useEffect(() => {
         fetchDashboard();
+        fetchHotels();
     }, []);
+    // 👇 thêm useEffect mới
+
+    useEffect(() => {
+        fetchDashboard();
+    }, [hotelId]);
 
     async function fetchDashboard() {
         setLoading(true);
         setError(null);
+
         try {
-            const res = await api.get("/admin/dashboard");
+            const res = await api.get(`/admin/dashboard`, {
+                params: { hotelId }
+            });
+
             setDashboard(res.data);
         } catch (err) {
-            console.error("Lỗi load dashboard:", err);
-            setError(err.response?.data || err.message || "Lỗi khi tải dữ liệu");
+            setError(err.response?.data || err.message);
         } finally {
             setLoading(false);
         }
     }
-
-    async function handleDeleteBooking(id) {
-        if (!window.confirm("Bạn có chắc chắn muốn xóa booking này?")) return;
-
-        setDeletingId(id);
-
+    async function fetchHotels() {
         try {
-            await api.delete(`/admin/bookings/${id}`);
-
-            setDashboard((prev) => {
-                if (!prev) return prev;
-
-                return {
-                    ...prev,
-                    recentBookings: prev.recentBookings.filter((b) => b.id !== id),
-                    totalBookings: prev.totalBookings - 1,
-                };
-            });
-
-            alert("Xóa booking thành công");
+            const res = await api.get("/admin/hotel-list");
+            setHotels(res.data);
         } catch (err) {
-            alert("Xóa thất bại: " + (err.response?.data || err.message));
-        } finally {
-            setDeletingId(null);
+            console.error("Load hotels failed", err);
         }
     }
+
+
 
     if (loading) {
         return (
@@ -121,6 +116,11 @@ export default function AdminDashboard() {
         },
     ];
 
+    const filteredHotels = hotels.filter(
+        h => h.name.toLowerCase().includes(hotelSearch.toLowerCase())
+    );
+
+
 
     const occupancyData = [
         { name: "Chiếm dụng", value: Math.round((dashboard?.occupancyRate ?? 0) * 100) / 100 },
@@ -132,12 +132,14 @@ export default function AdminDashboard() {
         if (!q) return true;
 
         if (String(b.id).includes(q)) return true;
+        if ((b.customerName || "").toLowerCase().includes(q)) return true; // thêm
         if ((b.status || "").toLowerCase().includes(q)) return true;
         if ((b.bookingDate || "").toLowerCase().includes(q)) return true;
         if (String(b.totalPrice).includes(q)) return true;
 
         return false;
     });
+
 
     const fmtCurrency = (v) =>
         new Intl.NumberFormat("vi-VN", {
@@ -156,9 +158,44 @@ export default function AdminDashboard() {
                 <div className="bg-white border-b border-slate-200 sticky top-0 z-40 px-8 py-4">
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
-                        <Button variant="outline" size="sm" onClick={fetchDashboard}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                setSearchTerm("");
+                                fetchDashboard();
+                            }}
+                            className="flex items-center gap-2"
+                        >
+                            <span className="animate-spin-slow">
+                                🔄
+                            </span>
                             Refresh
                         </Button>
+                        <div className="relative">
+                            {/* Ô search khách sạn */}
+                            <input
+                                className="border border-slate-300 px-3 py-2 rounded-lg w-64"
+                                placeholder="Tìm khách sạn..."
+                                value={hotelSearch}
+                                onChange={(e) => setHotelSearch(e.target.value)}
+                            />
+
+                            {/* Select hiển thị kết quả */}
+                            <select
+                                className="border border-slate-300 px-3 py-2 rounded-lg w-64 mt-2 cursor-pointer"
+                                value={hotelId ?? ""}
+                                onChange={(e) => setHotelId(e.target.value || null)}
+                            >
+                                <option value="">Tất cả khách sạn</option>
+
+                                {filteredHotels.map(h => (
+                                    <option key={h.id} value={h.id}>
+                                        {h.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -311,6 +348,7 @@ export default function AdminDashboard() {
                                     <thead>
                                         <tr className="border-b bg-slate-100">
                                             <th className="p-3 text-left">ID</th>
+                                            <th className="p-3 text-left">Khách hàng</th>
                                             <th className="p-3 text-left">Ngày đặt</th>
                                             <th className="p-3 text-left">Trạng thái</th>
                                             <th className="p-3 text-left">Tổng tiền</th>
@@ -323,6 +361,7 @@ export default function AdminDashboard() {
                                             filteredBookings.map((booking) => (
                                                 <tr key={booking.id} className="border-b hover:bg-slate-50">
                                                     <td className="p-3">#{booking.id}</td>
+                                                    <td className="p-3">{booking.customerName ?? "Không rõ"}</td>
                                                     <td className="p-3">
                                                         {booking.bookingDate
                                                             ? new Date(booking.bookingDate).toLocaleString("vi-VN")
@@ -343,28 +382,13 @@ export default function AdminDashboard() {
                                                     <td className="p-3 text-red-600 font-semibold">
                                                         {fmtCurrency(booking.totalPrice)}
                                                     </td>
-                                                    <td className="p-3">
-                                                        <div className="flex gap-2">
+                                                    <td className="p-3 items-center">
+                                                        <div className="flex  gap-2">
                                                             <button
                                                                 onClick={() => navigate(`/admin/bookings/${booking.id}`)}
-                                                                className="p-2 hover:bg-blue-100 rounded-lg text-blue-600"
+                                                                className="p-2 hover:bg-blue-100 rounded-lg text-blue-600 "
                                                             >
                                                                 <Eye className="w-4 h-4" />
-                                                            </button>
-
-                                                            <button
-                                                                onClick={() => navigate(`/admin/bookings/edit/${booking.id}`)}
-                                                                className="p-2 hover:bg-amber-100 rounded-lg text-amber-600"
-                                                            >
-                                                                <Edit className="w-4 h-4" />
-                                                            </button>
-
-                                                            <button
-                                                                onClick={() => handleDeleteBooking(booking.id)}
-                                                                className="p-2 hover:bg-red-100 rounded-lg text-red-600"
-                                                                disabled={deletingId === booking.id}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
                                                             </button>
                                                         </div>
                                                     </td>
