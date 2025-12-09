@@ -11,5 +11,5 @@ public class AdminDashboardResponse {
     private long availableRooms;
     private double occupancyRate;
 
-    private List<BookingDTO> recentBookings;
+    private List<DashboardBookingItem> recentBookings;
  }

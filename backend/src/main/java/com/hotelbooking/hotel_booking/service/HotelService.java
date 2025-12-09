@@ -34,6 +34,7 @@ public class HotelService {
     public List<Hotel> getAllHotels(){
         return hotelRepository.findAll();
     }
+
     
     public List<Map<String, Object>> getHotelCountByCity() {
         List<Object[]> results = hotelRepository.countHotelsByCity();
