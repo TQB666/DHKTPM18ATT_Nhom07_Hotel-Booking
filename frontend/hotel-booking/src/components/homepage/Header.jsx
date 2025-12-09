@@ -31,6 +31,7 @@ export default function Header() {
   // Danh sách navigation
   const navItems = [
     { name: "Khách sạn", path: "/HotelList", active: true },
+    { name: "AI Trợ Lý", path: "/ai-chat", active: true },
     { name: "Tours", path: "#", active: false },
     { name: "Vé máy bay", path: "#", active: false },
     { name: "Vé vui chơi", path: "#", active: false },
@@ -125,19 +126,19 @@ export default function Header() {
                         Thông tin cá nhân
                       </button>
                     </li>
-                    
-                      <li>
-                        <button
-                          onClick={() => {
-                            navigate("/history");
-                            setDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                        >
-                          Lịch sử đặt phòng
-                        </button>
-                      </li>
-                    
+
+                    <li>
+                      <button
+                        onClick={() => {
+                          navigate("/history");
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                      >
+                        Lịch sử đặt phòng
+                      </button>
+                    </li>
+
                     {role === "ROLE_ADMIN" && (
                       <li>
                         <button

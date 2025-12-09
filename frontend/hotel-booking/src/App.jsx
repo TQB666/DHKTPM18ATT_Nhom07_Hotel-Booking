@@ -31,6 +31,8 @@ import BookingHistory from "./pages/client/BookingHistory";
 import ProfilePage from "./pages/client/ProfilePage";
 import ChangePasswordPage from "./pages/client/ChangePasswordPage";
 import AdminRoomAdd from "./pages/admin/AdminRoomAdd";
+import AiChatPage from "./pages/client/AiChatPage";
+
 export default function App() {
   return (
     <Router>
@@ -48,6 +50,7 @@ export default function App() {
         <Route path="/history" element={<BookingHistory />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route path="/ai-chat" element={<AiChatPage />} />
         {/* === Protected routes (ĐÃ SỬA ĐÚNG) === */}
         {/* Route 1: Trang Admin Dashboard */}
         <Route
