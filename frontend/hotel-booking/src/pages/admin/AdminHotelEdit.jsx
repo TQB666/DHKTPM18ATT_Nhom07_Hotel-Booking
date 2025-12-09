@@ -12,6 +12,8 @@ export default function EditHotel() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
+  const [errors, setErrors] = useState({});
+
   // 🟦 Tải dữ liệu khách sạn
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -44,6 +46,46 @@ export default function EditHotel() {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
+  const validateForm = () => {
+  const newErrors = {};
+
+  if (!form.name.trim()) {
+      newErrors.name = "Tên khách sạn không được để trống";
+    } else if (!/^[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]/.test(form.name)) {
+      newErrors.name = "Ký tự đầu tiên phải viết hoa";
+    }
+
+    if (!form.address.trim()) {
+      newErrors.address = "Địa chỉ không được để trống";
+    }
+
+    if (!form.phone.trim()) {
+      newErrors.phone = "Số điện thoại không được để trống";
+    } else if (!/^[0-9]{10}$/.test(form.phone)) {
+      newErrors.phone = "Số điện thoại phải gồm 10 chữ số";
+    }
+
+    if (!form.city.trim()) {
+      newErrors.city = "Thành phố không được để trống";
+    }
+
+    if (form.rating < 1 || form.rating > 5) {
+      newErrors.rating = "Đánh giá phải từ 1 đến 5";
+    }
+
+    if (!form.shortDesc.trim()) {
+      newErrors.shortDesc = "Mô tả ngắn không được để trống";
+    }
+
+    if (!form.detailDesc.trim()) {
+      newErrors.detailDesc = "Mô tả chi tiết không được để trống";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
 
   // 🟦 Xử lý chọn ảnh → upload lên backend
   const handleImageSelect = async (e) => {
@@ -80,6 +122,9 @@ export default function EditHotel() {
   // 🟦 Gửi form cập nhật
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     setLoading(true);
 
     const token = localStorage.getItem("token");
@@ -117,6 +162,7 @@ export default function EditHotel() {
               onChange={handleChange}
               className="mt-1 w-full border border-gray-300 rounded-md p-2"
             />
+            {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
           </div>
 
           {/* Input: Địa chỉ */}
@@ -129,6 +175,7 @@ export default function EditHotel() {
               onChange={handleChange}
               className="mt-1 w-full border border-gray-300 rounded-md p-2"
             />
+            {errors.address && <p className="text-red-600 text-sm mt-1">{errors.address}</p>}
           </div>
 
           {/* Thành phố + Điện thoại */}
@@ -142,6 +189,7 @@ export default function EditHotel() {
                 onChange={handleChange}
                 className="mt-1 w-full border border-gray-300 rounded-md p-2"
               />
+              {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city}</p>}
             </div>
 
             <div>
@@ -153,6 +201,7 @@ export default function EditHotel() {
                 onChange={handleChange}
                 className="mt-1 w-full border border-gray-300 rounded-md p-2"
               />
+              {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
             </div>
           </div>
 
@@ -168,6 +217,7 @@ export default function EditHotel() {
               onChange={handleChange}
               className="mt-1 w-full border border-gray-300 rounded-md p-2"
             />
+            {errors.rating && <p className="text-red-600 text-sm mt-1">{errors.rating}</p>}
           </div>
 
           {/* Ảnh: Preview + Chọn file */}
@@ -203,6 +253,7 @@ export default function EditHotel() {
               className="mt-1 w-full border border-gray-300 rounded-md p-2"
               rows={2}
             ></textarea>
+            {errors.shortDesc && <p className="text-red-600 text-sm mt-1">{errors.shortDesc}</p>}
           </div>
 
           {/* Mô tả chi tiết */}
@@ -215,6 +266,7 @@ export default function EditHotel() {
               className="mt-1 w-full border border-gray-300 rounded-md p-2"
               rows={4}
             ></textarea>
+            {errors.detailDesc && <p className="text-red-600 text-sm mt-1">{errors.detailDesc}</p>}
           </div>
 
           {/* Buttons */}
