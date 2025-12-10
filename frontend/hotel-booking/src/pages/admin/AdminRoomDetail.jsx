@@ -33,12 +33,22 @@ export default function AdminRoomDetail() {
   const statusColor = (status) => {
     if (!status) return "bg-gray-200 text-gray-700";
     const statusMap = {
-      AVAILABLE: "bg-green-100 text-green-700",
-      OCCUPIED: "bg-amber-100 text-amber-700",
-      MAINTENANCE: "bg-red-100 text-red-700",
-      UNAVAILABLE: "bg-slate-200 text-slate-700",
+      available: "bg-green-100 text-green-700",
+      occupied: "bg-amber-100 text-amber-700",
+      maintenance: "bg-red-100 text-red-700",
+      unavailable: "bg-slate-200 text-slate-700",
     };
     return statusMap[status] || "bg-gray-200 text-gray-700";
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      available: "Có sẵn",
+      occupied: "Đã đặt",
+      maintenance: "Bảo trì",
+      unavailable: "Không khả dụng",
+    };
+    return labels[status] || status;
   };
 
   if (loading) {
@@ -136,7 +146,7 @@ export default function AdminRoomDetail() {
                       room.status
                     )}`}
                   >
-                    {room.status || "N/A"}
+                    {getStatusLabel(room.status) || "N/A"}
                   </span>
                 </div>
               </CardContent>

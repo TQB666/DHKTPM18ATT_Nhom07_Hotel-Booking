@@ -3,9 +3,12 @@ import Footer from "../../components/homepage/Footer";
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../../config/axiosConfig";
+import { Loader } from "lucide-react";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     firstName: "",
@@ -18,21 +21,75 @@ export default function Signup() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError(""); // Clear error when user starts typing
+  };
+
+  const validateForm = () => {
+    // Validation logic
+    if (!form.firstName.trim()) {
+      setError("Vui lòng nhập tên");
+      return false;
+    }
+    if (!form.lastName.trim()) {
+      setError("Vui lòng nhập họ");
+      return false;
+    }
+    if (!form.phone.trim()) {
+      setError("Vui lòng nhập số điện thoại");
+      return false;
+    }
+    if (!/^[0-9]{10}$/.test(form.phone.trim())) {
+      setError("Số điện thoại phải gồm 10 chữ số");
+      return false;
+    }
+    if (!form.email.trim()) {
+      setError("Vui lòng nhập email");
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError("Email không hợp lệ");
+      return false;
+    }
+    if (!form.password.trim()) {
+      setError("Vui lòng nhập mật khẩu");
+      return false;
+    }
+    if (form.password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      return false;
+    }
+    if (!form.confirmPassword.trim()) {
+      setError("Vui lòng xác nhận mật khẩu");
+      return false;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp!");
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (form.password !== form.confirmPassword) {
-      alert("Mật khẩu xác nhận không khớp!");
+    if (!validateForm()) {
       return;
     }
 
+    setLoading(true);
+    setError("");
+
     try {
       await api.post("/auth/signup", form);
+      // Navigate to login after successful signup
       navigate("/login");
     } catch (err) {
-      alert("Error: " + (err.response?.data || "Đăng ký thất bại"));
+      const errorMessage = err.response?.data || "Đăng ký thất bại";
+      setError(errorMessage);
+      console.error("Signup error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,6 +105,12 @@ export default function Signup() {
             Đăng ký tài khoản
           </h3>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Họ & Tên */}
             <div className="grid grid-cols-2 gap-4">
@@ -60,8 +123,9 @@ export default function Signup() {
                   name="lastName"
                   value={form.lastName}
                   onChange={handleChange}
+                  disabled={loading}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -74,8 +138,9 @@ export default function Signup() {
                   name="firstName"
                   value={form.firstName}
                   onChange={handleChange}
+                  disabled={loading}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -90,8 +155,10 @@ export default function Signup() {
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
+                disabled={loading}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Nhập 10 chữ số"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -105,8 +172,9 @@ export default function Signup() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
+                disabled={loading}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -120,8 +188,10 @@ export default function Signup() {
                 name="password"
                 value={form.password}
                 onChange={handleChange}
+                disabled={loading}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ít nhất 6 ký tự"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -135,17 +205,20 @@ export default function Signup() {
                 name="confirmPassword"
                 value={form.confirmPassword}
                 onChange={handleChange}
+                disabled={loading}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Nút Đăng ký */}
             <button
               type="submit"
-              className="w-full py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition duration-200"
+              disabled={loading}
+              className="w-full py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition duration-200 disabled:bg-green-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Đăng ký
+              {loading && <Loader size={18} className="animate-spin" />}
+              {loading ? "Đang đăng ký..." : "Đăng ký"}
             </button>
           </form>
 

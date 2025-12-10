@@ -11,10 +11,18 @@ export default function AdminRoomAdd() {
     price: 0,
     quantity: 1,
     description: "",
-    status: "AVAILABLE",
+    status: "available",
     image: "",
     hotelId: "",
   });
+
+  // Map status để hiển thị tiếng Việt
+  const statusLabels = {
+    available: "Có sẵn",
+    occupied: "Đã đặt",
+    maintenance: "Bảo trì",
+    unavailable: "Không khả dụng",
+  };
 
   const [hotels, setHotels] = useState([]);
   const [preview, setPreview] = useState("");
@@ -325,10 +333,10 @@ export default function AdminRoomAdd() {
               onChange={handleChange}
               className="mt-1 w-full border rounded-md p-2"
             >
-              <option value="AVAILABLE">Có sẵn</option>
-              <option value="OCCUPIED">Đã đặt</option>
-              <option value="MAINTENANCE">Bảo trì</option>
-              <option value="UNAVAILABLE">Không khả dụng</option>
+              <option value="available">Có sẵn</option>
+              <option value="occupied">Đã đặt</option>
+              <option value="maintenance">Bảo trì</option>
+              <option value="unavailable">Không khả dụng</option>
             </select>
           </div>
 
