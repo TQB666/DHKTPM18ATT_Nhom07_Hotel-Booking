@@ -114,6 +114,7 @@ public class CartService {
             CartDataRender dto = new CartDataRender();
             dto.setImage(detail.getRoom().getImage());
             dto.setHotelName(detail.getRoom().getHotel().getName());
+            dto.setStatusHotel(detail.getRoom().getHotel().getStatus());
             dto.setRoomName(detail.getRoom().getName());
             dto.setCheckIn(detail.getCheckIn());
             dto.setCheckOut(detail.getCheckOut());

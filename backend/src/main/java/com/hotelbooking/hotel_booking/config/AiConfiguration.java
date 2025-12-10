@@ -1,6 +1,5 @@
 package com.hotelbooking.hotel_booking.config;
 
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;

@@ -44,6 +44,8 @@ public class Hotel {
 
     private String city;
 
+    private String status; // ACTIVE, UNAVAILABLE
+
     @OneToMany(mappedBy = "hotel")
     Set<Room> rooms;
 

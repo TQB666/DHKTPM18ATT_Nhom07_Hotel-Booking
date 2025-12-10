@@ -15,4 +15,5 @@ public class CartDataRender {
     private long quantity;
     private double price;
     private long hotel_id;
+    private String statusHotel;
 }

@@ -120,7 +120,7 @@ const CartPage = () => {
 
             <div className="flex justify-end">
               <div className="w-full sm:w-[400px]">
-                <CartSummary total={totalPrice} />
+                <CartSummary total={totalPrice} item={cartItems} />
               </div>
             </div>
           </>

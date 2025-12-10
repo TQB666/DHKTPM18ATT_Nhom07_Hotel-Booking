@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 const CheckoutPage = () => {
   const [cartItems, setCartItems] = useState([]);
+  const [activeItems, setActiveItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -23,7 +24,14 @@ const CheckoutPage = () => {
         const data = await cartApi.getCart();
         setCartItems(data);
 
-        const totalPrice = data.reduce((sum, item) => {
+        // Lọc khách sạn còn hoạt động
+        const onlyActive = data.filter(
+          (item) => item.statusHotel === "ACTIVE"
+        );
+        setActiveItems(onlyActive);
+
+        // Tính tổng theo khách sạn hoạt động
+        const totalPrice = onlyActive.reduce((sum, item) => {
           const checkIn = new Date(item.checkIn);
           const checkOut = new Date(item.checkOut);
           const diffDays = Math.max(
@@ -44,6 +52,9 @@ const CheckoutPage = () => {
     fetchCart();
   }, []);
 
+  // Không còn khách sạn hoạt động
+  const noActiveHotel = activeItems.length === 0;
+
   // Cập nhật form input
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -53,19 +64,19 @@ const CheckoutPage = () => {
   // Gửi yêu cầu đặt phòng
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!cartItems || cartItems.length === 0) {
-      alert("❗Bạn chưa chọn phòng nào để đặt.");
+
+    if (noActiveHotel) {
+      alert("❗Không có khách sạn nào còn hoạt động để đặt phòng.");
       return;
     }
-    
+
     try {
       const payload = {
         ...formData,
-        cartItemIds: cartItems.map((item) => item.id),
+        cartItemIds: activeItems.map((item) => item.id),
         totalPrice: total,
       };
-      console.log(payload);
-      
+
       await bookingApi.checkout(payload);
       alert("Đặt phòng thành công 🎉");
       navigate("/booking-success");
@@ -89,10 +100,21 @@ const CheckoutPage = () => {
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-10 grid md:grid-cols-3 gap-6">
         {/* Form thông tin người đặt */}
         <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-md">
-          <h2 className="text-2xl font-semibold mb-4">Thông tin người đặt phòng</h2>
+          <h2 className="text-2xl font-semibold mb-4">
+            Thông tin người đặt phòng
+          </h2>
+
+          {noActiveHotel && (
+            <p className="text-red-600 font-medium mb-4">
+              ⚠️ Không có khách sạn nào còn hoạt động. Bạn không thể đặt phòng.
+            </p>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-gray-600 font-medium mb-1">Họ và tên</label>
+              <label className="block text-gray-600 font-medium mb-1">
+                Họ và tên
+              </label>
               <input
                 type="text"
                 name="fullName"
@@ -104,7 +126,9 @@ const CheckoutPage = () => {
             </div>
 
             <div>
-              <label className="block text-gray-600 font-medium mb-1">Email</label>
+              <label className="block text-gray-600 font-medium mb-1">
+                Email
+              </label>
               <input
                 type="email"
                 name="email"
@@ -116,7 +140,9 @@ const CheckoutPage = () => {
             </div>
 
             <div>
-              <label className="block text-gray-600 font-medium mb-1">Số điện thoại</label>
+              <label className="block text-gray-600 font-medium mb-1">
+                Số điện thoại
+              </label>
               <input
                 type="tel"
                 name="phoneNumber"
@@ -130,9 +156,15 @@ const CheckoutPage = () => {
 
             <button
               type="submit"
-              className="mt-6 w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+              disabled={noActiveHotel}
+              className={`mt-6 w-full py-3 rounded-xl font-semibold transition 
+                ${
+                  noActiveHotel
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
             >
-              Xác nhận đặt phòng
+              {noActiveHotel ? "Không thể đặt phòng" : "Xác nhận đặt phòng"}
             </button>
           </form>
         </div>
@@ -140,6 +172,7 @@ const CheckoutPage = () => {
         {/* Chi tiết đặt phòng */}
         <div className="bg-white p-6 rounded-2xl shadow-md h-fit">
           <h2 className="text-xl font-semibold mb-4">Chi tiết đặt phòng</h2>
+
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
             {cartItems.map((item) => {
               const checkIn = new Date(item.checkIn);
@@ -151,13 +184,25 @@ const CheckoutPage = () => {
               const totalItem = item.price * item.quantity * diffDays;
 
               return (
-                <div key={item.id} className="border-b pb-2 text-sm text-gray-700">
+                <div
+                  key={item.id}
+                  className="border-b pb-2 text-sm text-gray-700"
+                >
                   <p className="font-medium">{item.roomName}</p>
                   <p>{item.hotelName}</p>
-                  <p>{item.quantity} phòng × {diffDays} đêm</p>
-                  <p className="text-blue-600 font-semibold">
-                    {totalItem.toLocaleString("vi-VN")}₫
+                  <p>
+                    {item.quantity} phòng × {diffDays} đêm
                   </p>
+
+                  {item.statusHotel === "ACTIVE" ? (
+                    <p className="text-blue-600 font-semibold">
+                      {totalItem.toLocaleString("vi-VN")}₫
+                    </p>
+                  ) : (
+                    <p className="text-red-500 text-xs mt-1">
+                      ❌ Khách sạn này đã ngưng hoạt động.
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -165,7 +210,9 @@ const CheckoutPage = () => {
 
           <div className="mt-4 border-t pt-3 flex justify-between font-semibold text-lg">
             <span>Tổng cộng:</span>
-            <span className="text-blue-700">{total.toLocaleString("vi-VN")}₫</span>
+            <span className="text-blue-700">
+              {total.toLocaleString("vi-VN")}₫
+            </span>
           </div>
         </div>
       </main>
