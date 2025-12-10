@@ -3,8 +3,12 @@ package com.hotelbooking.hotel_booking.service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -155,68 +159,162 @@ public class AiService {
      * Extract hotel suggestions based on user query
      */
     private List<HotelDTO> extractHotelSuggestions(String userQuery) {
-        List<HotelDTO> suggestions = new ArrayList<>();
-        String queryLower = userQuery.toLowerCase();
+        String lowerText = userQuery.toLowerCase();
+        List<com.hotelbooking.hotel_booking.domain.Hotel> allHotels = hotelRepository.findAll();
 
-        // Check for city/location keywords
-        if (queryLower.contains("hà nội") || queryLower.contains("hanoi")) {
-            hotelRepository.findAll().stream()
-                .filter(h -> h.getCity() != null && h.getCity().toLowerCase().contains("hà nội"))
-                .limit(3)
-                .forEach(h -> suggestions.add(convertHotelToDTO(h)));
-        } else if (queryLower.contains("hồ chí minh") || queryLower.contains("ho chi minh")) {
-            hotelRepository.findAll().stream()
-                .filter(h -> h.getCity() != null && h.getCity().toLowerCase().contains("hồ chí minh"))
-                .limit(3)
-                .forEach(h -> suggestions.add(convertHotelToDTO(h)));
-        } else {
-            // Return top rated hotels
-            hotelRepository.findAll().stream()
-                .sorted((h1, h2) -> Integer.compare(h2.getRating(), h1.getRating()))
-                .limit(3)
-                .forEach(h -> suggestions.add(convertHotelToDTO(h)));
+        // --- BƯỚC 1: XÁC ĐỊNH Ý ĐỊNH ĐỊA ĐIỂM (Giữ nguyên) ---
+        List<String> detectedCities = allHotels.stream()
+                .map(h -> h.getCity())
+                .filter(city -> city != null && lowerText.contains(city.toLowerCase()))
+                .distinct()
+                .collect(Collectors.toList());
+
+        boolean hasLocationIntent = !detectedCities.isEmpty();
+
+        // --- BƯỚC 2: XÁC ĐỊNH Ý ĐỊNH SỐ SAO (MỚI) ---
+        Integer targetRating = null;
+        boolean isMinRating = false; // True nếu tìm "trên X sao", False nếu tìm "đúng X sao"
+
+        // Regex tìm số đứng trước chữ "sao" hoặc "star" (ví dụ: "5 sao", "4 star")
+        Pattern ratingPattern = Pattern.compile("(\\d+)\\s*(sao|star)", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = ratingPattern.matcher(lowerText);
+
+        if (matcher.find()) {
+            try {
+                int r = Integer.parseInt(matcher.group(1));
+                // Chỉ chấp nhận rating từ 1 đến 5
+                if (r >= 1 && r <= 5) {
+                    targetRating = r;
+                    // Kiểm tra xem có từ khóa "trên", "hơn", "từ" không
+                    if (lowerText.contains("trên") || lowerText.contains("hơn") || lowerText.contains("từ")) {
+                        isMinRating = true;
+                    }
+                }
+            } catch (NumberFormatException e) { /* Bỏ qua lỗi ép kiểu */ }
         }
 
-        return suggestions;
+        // Biến final để dùng trong lambda
+        final Integer finalRating = targetRating;
+        final boolean finalIsMin = isMinRating;
+
+        return allHotels.stream()
+                .filter(h -> {
+                    // --- ĐIỀU KIỆN 1: CHECK SỐ SAO (Ưu tiên lọc trước) ---
+                    if (finalRating != null) {
+                        if (finalIsMin) {
+                            // Tìm "trên 3 sao" -> Lấy >= 3
+                            if (h.getRating() < finalRating) return false;
+                        } else {
+                            // Tìm "5 sao" -> Lấy đúng == 5
+                            if (h.getRating() != finalRating) return false;
+                        }
+                    }
+
+                    // --- ĐIỀU KIỆN 2: CHECK ĐỊA ĐIỂM & TÊN ---
+
+                    // Trường hợp A: User CÓ nhắc đến địa điểm (Vd: "Đà Lạt 5 sao")
+                    if (hasLocationIntent) {
+                        return h.getCity() != null && detectedCities.stream()
+                                .anyMatch(city -> h.getCity().equalsIgnoreCase(city));
+                    }
+
+                    // Trường hợp B: User KHÔNG nhắc địa điểm (Vd: "Khách sạn 5 sao", "Pullman")
+                    boolean nameMatch = h.getName() != null && lowerText.contains(h.getName().toLowerCase());
+
+                    // Nếu đã lọc theo số sao rồi (finalRating != null) thì không cần check "gợi ý" nữa,
+                    // chỉ cần trả về true (vì rating đã khớp ở trên).
+                    // Nếu chưa có rating, mới check keyword chung chung.
+                    boolean isGeneralInquiry = lowerText.contains("gợi ý") || lowerText.contains("tốt nhất") || lowerText.contains("khách sạn");
+
+                    // Nếu có rating filter -> Chấp nhận luôn. Nếu không -> Check tên hoặc gợi ý
+                    return (finalRating != null) || nameMatch || (isGeneralInquiry && h.getRating() >= 4);
+                })
+                .map(this::convertHotelToDTO)
+                .distinct()
+                .limit(5)
+                .collect(Collectors.toList());
     }
 
     /**
      * Extract room suggestions based on user query
      */
     private List<RoomDTO> extractRoomSuggestions(String userQuery) {
-        List<RoomDTO> suggestions = new ArrayList<>();
-        String queryLower = userQuery.toLowerCase();
+        String lowerText = userQuery.toLowerCase();
+        List<com.hotelbooking.hotel_booking.domain.Room> allRooms = roomRepository.findAll();
 
-        // Check for capacity/price keywords
-        int desiredCapacity = 2; // default
-        double maxPrice = Double.MAX_VALUE;
+        // --- BƯỚC 1: XÁC ĐỊNH ĐỊA ĐIỂM (Tương tự logic Hotel) ---
+        // Mục đích: Nếu khách tìm "Đà Lạt", chỉ hiện phòng của khách sạn ở Đà Lạt
+        List<String> detectedCities = hotelRepository.findAll().stream()
+                .map(h -> h.getCity())
+                .filter(city -> city != null && lowerText.contains(city.toLowerCase()))
+                .distinct()
+                .collect(Collectors.toList());
 
-        if (queryLower.contains("1 người") || queryLower.contains("1 person")) {
-            desiredCapacity = 1;
-        } else if (queryLower.contains("2 người") || queryLower.contains("2 people")) {
-            desiredCapacity = 2;
-        } else if (queryLower.contains("3 người") || queryLower.contains("3 people")) {
-            desiredCapacity = 3;
-        } else if (queryLower.contains("4 người") || queryLower.contains("4 people")) {
-            desiredCapacity = 4;
+        boolean hasLocationIntent = !detectedCities.isEmpty();
+
+        // --- BƯỚC 2: XÁC ĐỊNH SỐ LƯỢNG NGƯỜI (Parsing thông minh) ---
+        int targetCapacity = 2; // Mặc định là phòng đôi nếu không nói gì
+        boolean hasCapacityIntent = false;
+
+        // Regex bắt: "2 người", "4 khach", "1 pax", "gia đình" (tính là 4)
+        Pattern capacityPattern = Pattern.compile("(\\d+)\\s*(người|khách|pax|person)|(gia đình)", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = capacityPattern.matcher(lowerText);
+
+        if (matcher.find()) {
+            if (matcher.group(3) != null) {
+                // Nếu tìm thấy chữ "gia đình"
+                targetCapacity = 4;
+                hasCapacityIntent = true;
+            } else {
+                // Nếu tìm thấy số (group 1)
+                try {
+                    targetCapacity = Integer.parseInt(matcher.group(1));
+                    hasCapacityIntent = true;
+                } catch (NumberFormatException e) { /* Ignore */ }
+            }
         }
 
-        if (queryLower.contains("rẻ") || queryLower.contains("cheap")) {
-            maxPrice = 50000; // Budget option
-        } else if (queryLower.contains("cao cấp") || queryLower.contains("premium")) {
-            maxPrice = Double.MAX_VALUE;
-        }
+        final int finalCapacity = targetCapacity;
+        final boolean finalHasCapacityIntent = hasCapacityIntent;
 
-        final int capacity = desiredCapacity;
-        final double price = maxPrice;
+        // --- BƯỚC 3: LỌC VÀ SẮP XẾP ---
+        return allRooms.stream()
+                .filter(room -> {
+                    // 1. Chỉ lấy phòng còn trống
+                    if (room.getQuantity() <= 0) return false;
 
-        roomRepository.findAll().stream()
-            .filter(r -> r.getCapacity() >= capacity && r.getPrice() <= price && r.getQuantity() > 0)
-            .sorted((r1, r2) -> Double.compare(r1.getPrice(), r2.getPrice()))
-            .limit(3)
-            .forEach(r -> suggestions.add(convertRoomToDTO(r)));
+                    // 2. Lọc theo Địa điểm (QUAN TRỌNG)
+                    if (hasLocationIntent) {
+                        com.hotelbooking.hotel_booking.domain.Hotel hotel = room.getHotel();
+                        // Nếu phòng không gắn với khách sạn hoặc khách sạn không đúng thành phố -> Loại
+                        if (hotel == null || hotel.getCity() == null) return false;
 
-        return suggestions;
+                        boolean matchCity = detectedCities.stream()
+                                .anyMatch(city -> hotel.getCity().equalsIgnoreCase(city));
+                        if (!matchCity) return false;
+                    }
+
+                    // 3. Lọc theo Số người
+                    // Logic: Lấy phòng có sức chứa >= yêu cầu (Ví dụ tìm 2 người thì phòng 2 hoặc 3 người đều ok)
+                    // Nhưng không được lớn quá (Ví dụ tìm 1 người mà gợi ý phòng 10 người là sai)
+                    if (finalHasCapacityIntent) {
+                        return room.getCapacity() >= finalCapacity && room.getCapacity() <= finalCapacity + 2;
+                    }
+
+                    return true;
+                })
+                // Sắp xếp: Ưu tiên phòng vừa khít số người nhất, sau đó đến giá rẻ nhất
+                .sorted(Comparator.comparingInt((com.hotelbooking.hotel_booking.domain.Room r) -> Math.abs(r.getCapacity() - finalCapacity))
+                        .thenComparingDouble(com.hotelbooking.hotel_booking.domain.Room::getPrice))
+                .map(room -> {
+                    RoomDTO dto = convertRoomToDTO(room);
+                    // Gán thêm hotelId nếu cần dùng ở Frontend để chuyển hướng
+                    if (room.getHotel() != null) dto.setHotelId(room.getHotel().getId());
+                    return dto;
+                })
+                .distinct() // Khử trùng lặp dựa trên ID (nhờ @EqualsAndHashCode)
+                .limit(4)   // Chỉ lấy 4 phòng tốt nhất
+                .collect(Collectors.toList());
     }
 
     /**
