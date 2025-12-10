@@ -1,291 +1,230 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Send, Loader, MessageCircle } from "lucide-react";
+import { 
+  Send, Loader, Bot, MapPin, Star, 
+  ShoppingCart, ArrowRight, User, Bed // Thêm icon Bed
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/homepage/Header";
 import Footer from "@/components/homepage/Footer";
 
 export default function AiChatPage() {
+  const navigate = useNavigate();
+  
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Xin chào! 👋 Tôi là trợ lý AI của ứng dụng đặt phòng khách sạn. Tôi có thể giúp bạn tìm kiếm khách sạn, phòng, và trả lời các câu hỏi về dịch vụ. Hãy hỏi tôi bất cứ điều gì!",
+      text: "Xin chào! 👋 Tôi có thể giúp bạn tìm khách sạn ở đâu hôm nay? (Ví dụ: Tìm khách sạn tại Đà Lạt cho 2 người)",
       sender: "ai",
       timestamp: new Date(),
       hotels: [],
-      rooms: [],
+      rooms: [], // Khởi tạo mảng rooms rỗng
     },
   ]);
+  
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // Auto scroll
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // --- HÀM CHUYỂN HƯỚNG ---
+  const handleViewHotel = (hotelId) => {
+    if (hotelId) {
+        navigate(`/HotelDetail/${hotelId}`); 
+    } else {
+        console.error("Không tìm thấy ID khách sạn");
+    }
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    // Add user message
-    const userMessage = {
-      id: messages.length + 1,
-      text: input,
-      sender: "user",
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    // 1. Hiển thị tin nhắn user
+    const userMsg = { id: Date.now(), text: input, sender: "user", timestamp: new Date() };
+    setMessages(prev => [...prev, userMsg]);
+    const userInput = input;
     setInput("");
     setLoading(true);
 
     try {
+      // 2. Gọi API
       const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:8080/api/ai/chat",
-        {
-          message: input,
-          context: "hotel-booking",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+      const res = await axios.post("http://localhost:8080/api/ai/chat", 
+        { message: userInput },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Add AI response
-      const aiMessage = {
-        id: messages.length + 2,
-        text: response.data.response,
+      // 3. Hiển thị tin nhắn AI + Dữ liệu khách sạn & PHÒNG
+      const aiMsg = {
+        id: Date.now() + 1,
+        text: res.data.response,
         sender: "ai",
         timestamp: new Date(),
-        hotels: response.data.hotelSuggestions || [],
-        rooms: response.data.roomSuggestions || [],
+        hotels: res.data.hotelSuggestions || [],
+        rooms: res.data.roomSuggestions || [] // Lấy dữ liệu phòng từ API
       };
+      setMessages(prev => [...prev, aiMsg]);
 
-      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Error sending message:", error);
-      const errorMessage = {
-        id: messages.length + 2,
-        text: "Xin lỗi, đã xảy ra lỗi khi xử lý câu hỏi của bạn. Vui lòng thử lại.",
-        sender: "ai",
-        timestamp: new Date(),
-        hotels: [],
-        rooms: [],
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      console.error(error);
+      setMessages(prev => [...prev, {
+        id: Date.now(), 
+        text: "Xin lỗi, hệ thống đang bận. Vui lòng thử lại sau.", 
+        sender: "ai", 
+        timestamp: new Date()
+      }]);
     } finally {
       setLoading(false);
-      inputRef.current?.focus();
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
-
-      <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
-        <div className="bg-white rounded-lg shadow-lg h-[600px] flex flex-col">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-t-lg flex items-center gap-3">
-            <MessageCircle size={28} />
+      <main className="flex-1 max-w-4xl mx-auto w-full p-4">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 h-[80vh] flex flex-col overflow-hidden">
+          
+          {/* Header Chat */}
+          <div className="bg-blue-600 text-white p-4 flex items-center gap-3 shadow-md">
+            <div className="bg-white/20 p-2 rounded-full"><Bot size={24}/></div>
             <div>
-              <h1 className="text-2xl font-bold">AI Trợ Lý Đặt Phòng</h1>
-              <p className="text-blue-100 text-sm">
-                Hỏi tôi bất cứ điều gì về khách sạn và phòng
-              </p>
+              <h1 className="font-bold">Trợ lý đặt phòng ảo</h1>
+              <p className="text-xs text-blue-100">Luôn sẵn sàng hỗ trợ</p>
             </div>
           </div>
 
-          {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-white to-blue-50">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.sender === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-2xl ${
-                    message.sender === "user"
-                      ? "bg-blue-600 text-white rounded-bl-lg rounded-br-none"
-                      : "bg-gray-100 text-gray-900 rounded-br-lg rounded-bl-none"
-                  } rounded-lg px-4 py-3 shadow-md`}
-                >
-                  <p className="text-sm leading-relaxed mb-2">{message.text}</p>
-                  <p
-                    className={`text-xs ${
-                      message.sender === "user"
-                        ? "text-blue-100"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {message.timestamp.toLocaleTimeString("vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-
-                  {/* Hotel Suggestions */}
-                  {message.hotels && message.hotels.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <p
-                        className={`text-xs font-semibold mb-2 ${
-                          message.sender === "user"
-                            ? "text-blue-200"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        📍 Gợi ý khách sạn:
-                      </p>
-                      <div className="space-y-2">
-                        {message.hotels.map((hotel) => (
-                          <div
-                            key={hotel.id}
-                            className={`p-2 rounded ${
-                              message.sender === "user"
-                                ? "bg-blue-500 bg-opacity-30"
-                                : "bg-yellow-50"
-                            }`}
-                          >
-                            <p className="font-medium text-sm">
-                              {hotel.name} ⭐ {hotel.rating}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {hotel.city} - {hotel.address}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Room Suggestions */}
-                  {message.rooms && message.rooms.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <p
-                        className={`text-xs font-semibold mb-2 ${
-                          message.sender === "user"
-                            ? "text-blue-200"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        🛏️ Gợi ý phòng:
-                      </p>
-                      <div className="space-y-2">
-                        {message.rooms.map((room) => (
-                          <div
-                            key={room.id}
-                            className={`p-2 rounded ${
-                              message.sender === "user"
-                                ? "bg-blue-500 bg-opacity-30"
-                                : "bg-green-50"
-                            }`}
-                          >
-                            <p className="font-medium text-sm">
-                              {room.name} - {room.capacity} người
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {Number(room.price).toLocaleString("vi-VN")}{" "}
-                              VND/đêm
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Còn {room.quantity} phòng
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+          {/* Nội dung Chat */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-100">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
+                
+                {/* Bong bóng tin nhắn text */}
+                <div className={`max-w-[85%] px-5 py-3 rounded-2xl shadow-sm relative ${
+                  msg.sender === "user" 
+                    ? "bg-blue-600 text-white rounded-tr-none" 
+                    : "bg-white text-gray-800 border border-gray-200 rounded-tl-none"
+                }`}>
+                  <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
+                  <span className="text-[10px] opacity-70 block mt-1 text-right">
+                    {msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </span>
                 </div>
+
+                {/* --- PHẦN 1: GỢI Ý KHÁCH SẠN --- */}
+                {msg.sender === "ai" && msg.hotels && msg.hotels.length > 0 && (
+                  <div className="mt-3 ml-2 w-full max-w-[90%]">
+                    <p className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
+                      <MapPin size={14}/> Gợi ý khách sạn:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {msg.hotels.map((hotel) => (
+                        <div key={hotel.id} className="bg-white p-3 rounded-xl border border-gray-200 hover:shadow-lg transition-all group">
+                          <div className="mb-2">
+                            <h4 className="font-bold text-gray-800 text-sm line-clamp-1 group-hover:text-blue-600">
+                              {hotel.name}
+                            </h4>
+                            <div className="flex items-center text-xs text-gray-500 mt-1">
+                              <MapPin size={10} className="mr-1"/> {hotel.city}
+                            </div>
+                            <div className="flex items-center mt-1">
+                              <span className="text-yellow-500 font-bold text-xs flex items-center">
+                                {hotel.rating} <Star size={10} className="fill-current ml-0.5"/>
+                              </span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => handleViewHotel(hotel.id)}
+                            className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                          >
+                            <ShoppingCart size={14}/> Xem khách sạn
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* --- PHẦN 2: GỢI Ý PHÒNG CỤ THỂ (MỚI THÊM VÀO) --- */}
+                {msg.sender === "ai" && msg.rooms && msg.rooms.length > 0 && (
+                  <div className="mt-3 ml-2 w-full max-w-[90%] border-t border-gray-200 pt-3">
+                    <p className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
+                       <Bed size={14}/> Phòng phù hợp nhất:
+                    </p>
+                    <div className="space-y-2">
+                        {msg.rooms.map((room) => (
+                            <div key={room.id} className="bg-white p-3 rounded-xl border border-green-100 shadow-sm flex justify-between items-center hover:border-green-300 transition-all">
+                                {/* Thông tin bên trái */}
+                                <div>
+                                    <h4 className="font-bold text-gray-800 text-sm">{room.name}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-xs text-gray-500 flex items-center bg-gray-100 px-1.5 py-0.5 rounded">
+                                            <User size={10} className="mr-1"/> {room.capacity} người
+                                        </span>
+                                        {/* Nếu có tên khách sạn đi kèm thì hiển thị nhỏ */}
+                                        {room.hotel && (
+                                            <span className="text-[10px] text-gray-400 line-clamp-1 max-w-[100px]">
+                                                @ {room.hotel.name}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Giá và Nút bên phải */}
+                                <div className="text-right flex flex-col items-end gap-1">
+                                    <span className="text-sm font-bold text-green-600">
+                                        {Number(room.price).toLocaleString('vi-VN')}đ
+                                    </span>
+                                    <button 
+                                        // Sử dụng hotelId có trong RoomDTO để chuyển hướng
+                                        onClick={() => handleViewHotel(room.hotelId)}
+                                        className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold py-1.5 px-3 rounded-full flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                                    >
+                                        Đặt ngay <ArrowRight size={10}/>
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
             ))}
-
+            
             {loading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-lg rounded-bl-none px-4 py-3 flex items-center gap-2">
-                  <Loader size={20} className="animate-spin text-gray-600" />
-                  <span className="text-sm text-gray-600">Đang xử lý...</span>
-                </div>
+              <div className="flex items-center gap-2 text-gray-500 text-sm ml-2">
+                <Loader className="animate-spin" size={16}/> AI đang tìm kiếm...
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Form */}
-          <div className="border-t border-gray-200 bg-white px-6 py-4 rounded-b-lg">
-            <form onSubmit={handleSendMessage} className="flex gap-3">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Nhập câu hỏi của bạn... (vd: Tìm phòng 2 người rẻ ở Hà Nội)"
-                disabled={loading}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-              />
-              <button
-                type="submit"
-                disabled={loading || !input.trim()}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {loading ? (
-                  <>
-                    <Loader size={20} className="animate-spin" />
-                    Gửi
-                  </>
-                ) : (
-                  <>
-                    <Send size={20} />
-                    Gửi
-                  </>
-                )}
-              </button>
-            </form>
-            <p className="text-xs text-gray-500 mt-2">
-              💡 Gợi ý: Hỏi về khách sạn, phòng, giá cả, vị trí, hoặc dịch vụ
-            </p>
-          </div>
-        </div>
+          {/* Input Chat */}
+          <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-gray-200 flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Nhập yêu cầu (vd: Tìm phòng Đà Lạt cho 2 người)..."
+              disabled={loading}
+              className="flex-1 bg-gray-100 px-4 py-3 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button 
+              type="submit" 
+              disabled={loading || !input.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg disabled:opacity-50 transition-all"
+            >
+              <Send size={20}/>
+            </button>
+          </form>
 
-        {/* Quick Suggestions */}
-        <div className="mt-6 bg-white rounded-lg shadow p-6">
-          <h3 className="font-semibold text-gray-800 mb-4">
-            📝 Câu hỏi gợi ý:
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[
-              "Tìm khách sạn ở Hà Nội với giá rẻ",
-              "Phòng 2 người có sẵn không?",
-              "Khách sạn 5 sao ở Hồ Chí Minh",
-              "Phòng thoải mái cho gia đình 4 người",
-            ].map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setInput(suggestion);
-                  setTimeout(() => inputRef.current?.focus(), 0);
-                }}
-                className="text-left px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-sm text-gray-700 hover:text-gray-900 transition"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
         </div>
-      </div>
-
+      </main>
       <Footer />
     </div>
   );
