@@ -3,17 +3,35 @@ import Header from "../../components/homepage/Header";
 import Footer from "../../components/homepage/Footer";
 import api from "../../config/axiosConfig";
 import { useNavigate, Link } from "react-router-dom";
+import { Loader } from "lucide-react";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError(""); // Clear error when user starts typing
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
+    if (!form.email.trim()) {
+      setError("Vui lòng nhập email");
+      return;
+    }
+    if (!form.password.trim()) {
+      setError("Vui lòng nhập mật khẩu");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
     try {
       const res = await api.post("/auth/login", form);
       const { token, authorities, email } = res.data;
@@ -30,7 +48,11 @@ export default function Login() {
         navigate("/");
       }
     } catch (err) {
-      alert("Error: " + (err.response?.data || "Login failed"));
+      const errorMessage = err.response?.data || "Đăng nhập thất bại";
+      setError(errorMessage);
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,6 +68,12 @@ export default function Login() {
             Đăng nhập
           </h3>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -56,8 +84,9 @@ export default function Login() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
+                disabled={loading}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Nhập email của bạn"
               />
             </div>
@@ -71,17 +100,20 @@ export default function Login() {
                 name="password"
                 value={form.password}
                 onChange={handleChange}
+                disabled={loading}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Nhập mật khẩu"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition duration-200"
+              disabled={loading}
+              className="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition duration-200 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Đăng nhập
+              {loading && <Loader size={18} className="animate-spin" />}
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
 

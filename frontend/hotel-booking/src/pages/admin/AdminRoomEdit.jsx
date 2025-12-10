@@ -15,9 +15,17 @@ export default function AdminRoomEdit() {
     price: 0,
     quantity: 0,
     description: "",
-    status: "AVAILABLE",
+    status: "available",
     image: "",
   });
+
+  // Map status để hiển thị tiếng Việt
+  const statusLabels = {
+    available: "Có sẵn",
+    occupied: "Đã đặt",
+    maintenance: "Bảo trì",
+    unavailable: "Không khả dụng",
+  };
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -323,10 +331,10 @@ export default function AdminRoomEdit() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="AVAILABLE">Có sẵn</option>
-                  <option value="OCCUPIED">Đã đặt</option>
-                  <option value="MAINTENANCE">Bảo trì</option>
-                  <option value="UNAVAILABLE">Không hoạt động</option>
+                  <option value="available">Có sẵn</option>
+                  <option value="occupied">Đã đặt</option>
+                  <option value="maintenance">Bảo trì</option>
+                  <option value="unavailable">Không khả dụng</option>
                 </select>
               </div>
 
