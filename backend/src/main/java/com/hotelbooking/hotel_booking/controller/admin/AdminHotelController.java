@@ -64,6 +64,13 @@ public class AdminHotelController {
         return hotelService.uploadGalleryImages(id, files);
     }
 
+    @DeleteMapping("/{hotelId}/images/{imageId}")
+    public String deleteHotelImage(
+            @PathVariable Long hotelId,
+            @PathVariable Long imageId) {
+        hotelService.deleteHotelImage(hotelId, imageId);
+        return "Image " + imageId + " has been deleted";
+    }
 
     // Xóa mềm khách sạn (soft delete)
     @DeleteMapping("/{id}")

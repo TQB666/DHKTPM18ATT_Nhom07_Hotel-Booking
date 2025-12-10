@@ -201,6 +201,18 @@ public Page<Hotel> searchHotels(String city, String name, Integer stars,
         hotelRepository.save(hotel);
     }
 
+    // Delete image của khách sạn
+    public void deleteHotelImage(Long hotelId, Long imageId) {
+        Image image = imageRepository.findById(imageId)
+                .orElseThrow(() -> new RuntimeException("Image not found"));
+
+        // Verify image belongs to hotel
+        if (image.getHotel().getId() != hotelId) {
+            throw new RuntimeException("Image does not belong to this hotel");
+        }
+
+        imageRepository.delete(image);
+    }
 
 }
 
