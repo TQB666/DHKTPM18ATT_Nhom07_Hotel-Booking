@@ -3,7 +3,7 @@ import Header from "../../components/homepage/Header";
 import Footer from "../../components/homepage/Footer";
 import api from "../../config/axiosConfig";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader } from "lucide-react";
+import { Loader, AlertCircle } from "lucide-react";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -48,11 +48,11 @@ export default function Login() {
         navigate("/");
       }
     } catch (err) {
-      const errorMessage = err.response?.data || "Đăng nhập thất bại";
+      const errorMessage =
+        err.response?.data || "Đăng nhập thất bại. Vui lòng thử lại.";
       setError(errorMessage);
-      console.error("Login error:", err);
-    } finally {
       setLoading(false);
+      console.error("Login error:", err);
     }
   };
 
@@ -69,8 +69,9 @@ export default function Login() {
           </h3>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-red-600 text-sm">
+              <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
 
