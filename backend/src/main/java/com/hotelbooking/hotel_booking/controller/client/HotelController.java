@@ -1,6 +1,8 @@
 package com.hotelbooking.hotel_booking.controller.client;
 
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +26,7 @@ public class HotelController {
     public Page<Hotel> getHotels(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) Integer stars,
+            @RequestParam(required = false) List<Integer> stars,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(defaultValue = "0") int page,

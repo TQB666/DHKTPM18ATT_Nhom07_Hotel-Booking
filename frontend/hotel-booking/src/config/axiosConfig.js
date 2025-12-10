@@ -1,11 +1,18 @@
 import axios from "axios";
-
+import qs from "qs";
 // Tạo instance axios
 const api = axios.create({
   baseURL: "http://localhost:8080/api",
   headers: {
     "Content-Type": "application/json",
   },
+  paramsSerializer: (params) => {
+    return qs.stringify(params, {
+      arrayFormat: 'repeat', // stars=5&stars=4 (không có [])
+      skipNulls: true,
+      encode: false
+    });
+  }
 });
 
 // Request interceptor: gắn token vào header

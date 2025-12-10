@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+
 const FilterSidebar = ({ onFilter }) => {
   const [name, setName] = useState("");
   const [minPrice, setMinPrice] = useState("");
@@ -9,42 +10,71 @@ const FilterSidebar = ({ onFilter }) => {
   const params = new URLSearchParams(location.search);
   const cityURL = params.get("city");
 
+  // Tự động filter khi stars thay đổi
+  useEffect(() => {
+    handleSearch();
+  }, [stars]); // Thêm dependencies
+
   // Toggle chọn sao
   const toggleStar = (star) => {
-    setStars((prev) =>
-      prev.includes(star) ? prev.filter((s) => s !== star) : [...prev, star]
-    );
-    console.log(stars);
-    
+    setStars((prev) => {
+      const newStars = prev.includes(star) 
+        ? prev.filter((s) => s !== star) 
+        : [...prev, star];
+      return newStars;
+    });
   };
 
   const handleSearch = () => {
-    onFilter({ name, minPrice, maxPrice, stars, cityURL});
+    // Gọi onFilter với tất cả filter hiện tại
+    onFilter({ name, minPrice, maxPrice, stars, cityURL });
   };
+
   // Hàm chọn nhanh theo khoảng giá
   const handleQuickPrice = (range) => {
+    let newMinPrice = "";
+    let newMaxPrice = "";
+    
     switch (range) {
       case "500K - 1M":
-        setMinPrice(500000);
-        setMaxPrice(1000000);
+        newMinPrice = 500000;
+        newMaxPrice = 1000000;
         break;
       case "1M - 2M":
-        setMinPrice(1000000);
-        setMaxPrice(2000000);
+        newMinPrice = 1000000;
+        newMaxPrice = 2000000;
         break;
       case "2M - 3M":
-        setMinPrice(2000000);
-        setMaxPrice(3000000);
+        newMinPrice = 2000000;
+        newMaxPrice = 3000000;
         break;
       case "Trên 3M":
-        setMinPrice(3000000);
-        setMaxPrice(""); // maxPrice để trống nghĩa là >3M
+        newMinPrice = 3000000;
+        newMaxPrice = ""; // maxPrice để trống nghĩa là >3M
         break;
       default:
-        setMinPrice("");
-        setMaxPrice("");
+        newMinPrice = "";
+        newMaxPrice = "";
     }
-  }
+    
+    setMinPrice(newMinPrice);
+    setMaxPrice(newMaxPrice);
+    
+    // Gọi filter ngay sau khi set giá
+    setTimeout(() => {
+      onFilter({ name, minPrice: newMinPrice, maxPrice: newMaxPrice, stars, cityURL });
+    }, 0);
+  };
+
+  // Thêm hàm reset
+  const handleReset = () => {
+    setName("");
+    setMinPrice("");
+    setMaxPrice("");
+    setStars([]);
+    onFilter({ name: "", minPrice: "", maxPrice: "", stars: [], cityURL });
+  };
+
   return (
     <div className="space-y-4">
       {/* Tìm theo tên */}
@@ -111,18 +141,19 @@ const FilterSidebar = ({ onFilter }) => {
         <div className="space-y-1">
           {[5, 4, 3, 2, 1].map((star) => (
             <label key={star} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" 
-              className="accent-blue-600" 
-              checked={stars.includes(star)}
-              onChange={() => toggleStar(star)}/>
-
+              <input 
+                type="checkbox" 
+                className="accent-blue-600" 
+                checked={stars.includes(star)}
+                onChange={() => toggleStar(star)}
+              />
               {"⭐".repeat(star)} {star} sao
             </label>
           ))}
         </div>
       </div>
 
-      {/* Tiện ích */}
+      {/* Tiện ích - có thể tạm bỏ qua nếu chưa cần */}
       <div className="bg-white p-4 rounded-lg shadow">
         <h6 className="font-semibold mb-3">📋 Tiện ích</h6>
         <div className="space-y-1 text-sm">
@@ -136,6 +167,14 @@ const FilterSidebar = ({ onFilter }) => {
           )}
         </div>
       </div>
+
+      {/* Nút reset */}
+      <button
+        onClick={handleReset}
+        className="w-full py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition"
+      >
+        🔄 Xóa bộ lọc
+      </button>
     </div>
   );
 };
