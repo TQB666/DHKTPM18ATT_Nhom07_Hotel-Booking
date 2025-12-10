@@ -18,6 +18,7 @@ import com.hotelbooking.hotel_booking.domain.Room;
 import com.hotelbooking.hotel_booking.repository.HotelRepository;
 import com.hotelbooking.hotel_booking.repository.ImageRepository;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -86,7 +87,7 @@ public class HotelService {
 //    return hotelRepository.findAll(spec);
 //    }
 // Chỉnh sửa pagination phần trang
-public Page<Hotel> searchHotels(String city, String name, Integer stars,
+public Page<Hotel> searchHotels(String city, String name, List<Integer> stars,
                                 Double minPrice, Double maxPrice,
                                 int page, int size) { // Thêm tham số page, size
 
@@ -104,8 +105,12 @@ public Page<Hotel> searchHotels(String city, String name, Integer stars,
         if (name != null && !name.isEmpty()) {
             predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
         }
-        if (stars != null) {
-            predicates.add(cb.equal(root.get("rating"), stars));
+        if (stars != null && !stars.isEmpty()) {
+            CriteriaBuilder.In<Integer> inClause = cb.in(root.get("rating"));
+            for (Integer s : stars) {
+                inClause.value(s);
+            }
+            predicates.add(inClause);
         }
 
         // Xử lý Subquery giá (giữ nguyên logic của bạn)
