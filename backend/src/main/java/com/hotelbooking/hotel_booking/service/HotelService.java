@@ -96,6 +96,8 @@ public Page<Hotel> searchHotels(String city, String name, Integer stars,
     Specification<Hotel> spec = (root, query, cb) -> {
         List<Predicate> predicates = new ArrayList<>();
 
+        predicates.add(cb.equal(root.get("status"), "ACTIVE"));
+
         if (city != null && !city.isEmpty()) {
             predicates.add(cb.like(cb.lower(root.get("city")), "%" + city.toLowerCase() + "%"));
         }
@@ -179,6 +181,24 @@ public Page<Hotel> searchHotels(String city, String name, Integer stars,
         
 
         return imageRepository.saveAll(imageList);
+    }
+
+    // Soft delete: set UNAVAILABLE
+    public void softDelete(Long id) {
+        Hotel hotel = hotelRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hotel not found"));
+
+        hotel.setStatus("UNAVAILABLE");
+        hotelRepository.save(hotel);
+    }
+
+    // Activate: set ACTIVE
+    public void activateHotel(Long id) {
+        Hotel hotel = hotelRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hotel not found"));
+
+        hotel.setStatus("ACTIVE");
+        hotelRepository.save(hotel);
     }
 
 

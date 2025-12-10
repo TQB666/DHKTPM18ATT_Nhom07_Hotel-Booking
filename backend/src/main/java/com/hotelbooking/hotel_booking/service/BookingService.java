@@ -12,12 +12,14 @@ import org.springframework.stereotype.Service;
 import com.hotelbooking.hotel_booking.domain.Booking;
 import com.hotelbooking.hotel_booking.domain.BookingDetail;
 import com.hotelbooking.hotel_booking.domain.CartDetail;
+import com.hotelbooking.hotel_booking.domain.Room;
 import com.hotelbooking.hotel_booking.domain.User;
 import com.hotelbooking.hotel_booking.domain.dto.BookingInfo;
 import com.hotelbooking.hotel_booking.repository.BookingDetailRepository;
 import com.hotelbooking.hotel_booking.repository.BookingRepository;
 import com.hotelbooking.hotel_booking.repository.CartDetailRepository;
 import com.hotelbooking.hotel_booking.repository.CartRepository;
+import com.hotelbooking.hotel_booking.repository.RoomRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -31,6 +33,7 @@ public class BookingService {
     private final CartDetailRepository cartDetailRepository;
     private final CartRepository cartRepository;
     private final EmailService emailService;
+    private final RoomRepository roomRepository;
 
     @Transactional
     public Booking createBooking(BookingInfo bookingInfo, User user, List<CartDetail> cartDetail) {
@@ -69,13 +72,13 @@ public class BookingService {
 
             bookingDetailRepository.save(bookingDetail);
 
-            // //  Giảm số lượng phòng còn lại
-            // Room room = c.getRoom();
-            // if (room.getQuantity() < c.getQuantity()) {
-            //     throw new RuntimeException(" Phòng " + room.getName() + " không đủ số lượng.");
-            // }
-            // room.setQuantity(room.getQuantity() - c.getQuantity());
-            // roomRepository.save(room);
+            //  Giảm số lượng phòng còn lại
+            Room room = c.getRoom();
+            if (room.getQuantity() < c.getQuantity()) {
+                throw new RuntimeException(" Phòng " + room.getName() + " không đủ số lượng.");
+            }
+            room.setQuantity(room.getQuantity() - (int)c.getQuantity());
+            roomRepository.save(room);
         });
 
         // ❗ Xoá giỏ hàng từng dòng dễ lỗi → đổi sang xoá 1 lần

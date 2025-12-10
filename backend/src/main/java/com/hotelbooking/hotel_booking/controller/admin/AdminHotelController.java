@@ -65,18 +65,19 @@ public class AdminHotelController {
     }
 
 
-    // // Xóa khách sạn
-    // @DeleteMapping("/{id}")
-    // public String deleteHotel(@PathVariable Long id) {
-    //     hotelService.deleteHotel(id);
-    //     return "Deleted hotel with id: " + id;
-    // }
+    // Xóa mềm khách sạn (soft delete)
+    @DeleteMapping("/{id}")
+    public String softDeleteHotel(@PathVariable Long id) {
+        hotelService.softDelete(id);
+        return "Hotel " + id + " has been set to UNAVAILABLE";
+    }
 
-    // // Bật/tắt hoạt động
-    // @PutMapping("/{id}/status")
-    // public Hotel updateStatus(
-    //         @PathVariable Long id,
-    //         @RequestParam boolean active) {
-    //     return hotelService.updateHotelStatus(id, active);
-    // }
+    // Kích hoạt lại khách sạn
+    @PutMapping("/{id}/activate")
+    public String activateHotel(@PathVariable Long id) {
+        hotelService.activateHotel(id);
+        return "Hotel " + id + " is now ACTIVE";
+    }
 }
+
+

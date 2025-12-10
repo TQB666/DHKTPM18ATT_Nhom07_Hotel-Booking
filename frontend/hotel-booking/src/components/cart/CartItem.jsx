@@ -54,95 +54,138 @@ const CartItem = ({ item, onQuantityChange, onDateChange, onRemove }) => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row bg-white shadow-md rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-      <Link to={`/HotelDetail/${item.hotel_id}`}>
+  <div
+    className={`flex flex-col md:flex-row bg-white shadow-md rounded-2xl overflow-hidden border border-gray-200 transition-shadow duration-200 
+      ${item.statusHotel === "UNAVAILABLE" ? "opacity-70" : "hover:shadow-lg"}
+    `}
+  >
+    {/* ẢNH (hover hiển thị trạng thái) */}
+    <div
+      className="relative group"
+      title={item.statusHotel === "UNAVAILABLE" ? "Khách sạn ngưng hoạt động" : ""}
+    >
+      {item.statusHotel === "UNAVAILABLE" ? (
         <img
           src={item.image}
           alt={item.roomName}
-          className="w-full md:w-64 h-64 object-cover"
+          className="w-full md:w-64 h-64 object-cover cursor-not-allowed"
         />
-      </Link>
+      ) : (
+        <Link to={`/HotelDetail/${item.hotel_id}`}>
+          <img
+            src={item.image}
+            alt={item.roomName}
+            className="w-full md:w-64 h-64 object-cover"
+          />
+        </Link>
+      )}
 
-      <div className="flex-1 p-4 flex flex-col justify-between">
-          {/* Thông tin phòng */}
-          <div>
-            <h3 className="text-xl font-semibold text-gray-800">
-            {item.roomName}
-            </h3>
-            <p className="text-base text-gray-500 mb-2">
-              Khách sạn: {item.hotelName}
-            </p>
-            <p className="text-gray-600">
-              Giá / đêm:{" "}
-              <span className="text-blue-600 font-semibold">
-                {item.price.toLocaleString("vi-VN")}₫
-              </span>
-            </p>
+      {item.statusHotel === "UNAVAILABLE" && (
+        <div className="absolute inset-0 bg-black/50 text-white flex items-center justify-center text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+          Khách sạn ngưng hoạt động
+        </div>
+      )}
+    </div>
+
+    {/* ===================================== */}
+    {/*             THÔNG TIN ITEM            */}
+    {/* ===================================== */}
+
+    <div className="flex-1 p-4 flex flex-col justify-between">
+      {/* Thông tin phòng */}
+      <div>
+        <h3 className="text-xl font-semibold text-gray-800">{item.roomName}</h3>
+        <p className="text-base text-gray-500 mb-2">
+          Khách sạn: {item.hotelName}
+        </p>
+        <p className="text-gray-600">
+          Giá / đêm:{" "}
+          <span className="text-blue-600 font-semibold">
+            {item.price.toLocaleString("vi-VN")}₫
+          </span>
+        </p>
+      </div>
+
+      {/* Check-in / Check-out */}
+      <div className="flex flex-wrap items-center gap-4 mt-3">
+        <div>
+          <label className="text-sm text-gray-500">Check-in</label>
+          <input
+            type="date"
+            value={item.checkIn}
+            onChange={(e) => handleDateChange("checkIn", e.target.value)}
+            disabled={item.statusHotel === "UNAVAILABLE"}
+            className={`block border rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 
+              ${item.statusHotel === "UNAVAILABLE" ? "bg-gray-200 cursor-not-allowed" : ""}
+            `}
+          />
         </div>
 
-        {/* Check-in / Check-out */}
-        <div className="flex flex-wrap items-center gap-4 mt-3">
-          <div>
-            <label className="text-sm text-gray-500">Check-in</label>
-            <input
-              type="date"
-              value={item.checkIn}
-              onChange={(e) => handleDateChange("checkIn", e.target.value)}
-              className="block border rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-gray-500">Check-out</label>
-            <input
-              type="date"
-              value={item.checkOut}
-              onChange={(e) => handleDateChange("checkOut", e.target.value)}
-              className="block border rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Điều khiển số lượng + tổng tiền */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleDecrease}
-              className="p-1 border rounded-md hover:bg-gray-100"
-            >
-              <Minus size={16} />
-            </button>
-            <span className="px-3 text-gray-800">{item.quantity}</span>
-            <button
-              onClick={handleIncrease}
-              className="p-1 border rounded-md hover:bg-gray-100"
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-
-          <p className="font-semibold text-blue-700">
-            {(() => {
-              const checkInDate = new Date(item.checkIn);
-              const checkOutDate = new Date(item.checkOut);
-              const diffDays = Math.max(
-                1,
-                Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24))
-              );
-              const total = item.price * item.quantity * diffDays;
-              return `Tổng: ${total.toLocaleString("vi-VN")}₫ (${diffDays} đêm)`;
-            })()}
-          </p>
-
-          <button
-            onClick={() => onRemove(item.id)}
-            className="text-red-500 hover:text-red-600 cursor-pointer transition-transform hover:scale-110"
-          >
-            <Trash2 size={20} />
-          </button>
+        <div>
+          <label className="text-sm text-gray-500">Check-out</label>
+          <input
+            type="date"
+            value={item.checkOut}
+            onChange={(e) => handleDateChange("checkOut", e.target.value)}
+            disabled={item.statusHotel === "UNAVAILABLE"}
+            className={`block border rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 
+              ${item.statusHotel === "UNAVAILABLE" ? "bg-gray-200 cursor-not-allowed" : ""}
+            `}
+          />
         </div>
       </div>
+
+      {/* Số lượng + tổng tiền */}
+      <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDecrease}
+            disabled={item.statusHotel === "UNAVAILABLE"}
+            className={`p-1 border rounded-md 
+              ${item.statusHotel === "UNAVAILABLE" ? "bg-gray-200 cursor-not-allowed" : "hover:bg-gray-100"}
+            `}
+          >
+            <Minus size={16} />
+          </button>
+
+          <span className="px-3 text-gray-800">{item.quantity}</span>
+
+          <button
+            onClick={handleIncrease}
+            disabled={item.statusHotel === "UNAVAILABLE"}
+            className={`p-1 border rounded-md 
+              ${item.statusHotel === "UNAVAILABLE" ? "bg-gray-200 cursor-not-allowed" : "hover:bg-gray-100"}
+            `}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+
+        <p className="font-semibold text-blue-700">
+          {(() => {
+            const checkInDate = new Date(item.checkIn);
+            const checkOutDate = new Date(item.checkOut);
+            const diffDays = Math.max(
+              1,
+              Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24))
+            );
+            const total = item.price * item.quantity * diffDays;
+            return `Tổng: ${total.toLocaleString("vi-VN")}₫ (${diffDays} đêm)`;
+          })()}
+        </p>
+
+        {/* Nút xóa vẫn hoạt động */}
+        <button
+          onClick={() => onRemove(item.id)}
+          className="text-red-500 hover:text-red-600 cursor-pointer transition-transform hover:scale-110"
+        >
+          <Trash2 size={20} />
+        </button>
+      </div>
     </div>
-  );
+  </div>
+);
+
 };
 
 export default CartItem;
