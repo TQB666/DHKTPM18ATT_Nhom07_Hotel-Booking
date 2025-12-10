@@ -3,12 +3,13 @@ import Footer from "../../components/homepage/Footer";
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../../config/axiosConfig";
-import { Loader } from "lucide-react";
+import { Loader, AlertCircle, CheckCircle, X } from "lucide-react";
 
 export default function Signup() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successModal, setSuccessModal] = useState(false);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -82,15 +83,30 @@ export default function Signup() {
 
     try {
       await api.post("/auth/signup", form);
-      // Navigate to login after successful signup
-      navigate("/login");
+      // Show success modal instead of navigating directly
+      setSuccessModal(true);
+      // Don't reset form yet - keep it for modal display
+      setLoading(false);
     } catch (err) {
       const errorMessage = err.response?.data || "Đăng ký thất bại";
       setError(errorMessage);
-      console.error("Signup error:", err);
-    } finally {
       setLoading(false);
+      console.error("Signup error:", err);
     }
+  };
+
+  const handleSuccessModalClose = () => {
+    setSuccessModal(false);
+    // Reset form and navigate to login after user clicks OK
+    setForm({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    });
+    navigate("/login");
   };
 
   return (
@@ -106,8 +122,9 @@ export default function Signup() {
           </h3>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-red-600 text-sm">
+              <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -233,6 +250,30 @@ export default function Signup() {
           </p>
         </div>
       </main>
+
+      {/* Success Modal */}
+      {successModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center">
+            <div className="flex justify-center mb-4">
+              <CheckCircle size={64} className="text-green-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Đăng ký thành công!
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Tài khoản của bạn đã được tạo thành công. Vui lòng đăng nhập để
+              tiếp tục.
+            </p>
+            <button
+              onClick={handleSuccessModalClose}
+              className="w-full py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition duration-200"
+            >
+              Đồng ý
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <Footer />

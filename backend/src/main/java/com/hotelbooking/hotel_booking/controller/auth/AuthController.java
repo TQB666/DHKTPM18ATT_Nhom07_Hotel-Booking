@@ -79,6 +79,9 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDTO request) {
+        long startTime = System.currentTimeMillis();
+        System.out.println("[LOGIN] Start - Email: " + request.getEmail());
+        
         // Validation
         if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Email không được để trống");
@@ -89,24 +92,36 @@ public class AuthController {
         }
         
         try {
+            long authStartTime = System.currentTimeMillis();
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
                             request.getPassword()
                     )
             );
+            long authTime = System.currentTimeMillis() - authStartTime;
+            System.out.println("[LOGIN] Authentication time: " + authTime + "ms");
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            
+            long tokenStartTime = System.currentTimeMillis();
             String token = jwtUtil.generateToken(userDetails.getUsername());
+            long tokenTime = System.currentTimeMillis() - tokenStartTime;
+            System.out.println("[LOGIN] Token generation time: " + tokenTime + "ms");
 
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
             response.put("email", userDetails.getUsername());
             response.put("authorities", userDetails.getAuthorities());
 
+            long totalTime = System.currentTimeMillis() - startTime;
+            System.out.println("[LOGIN] Total time: " + totalTime + "ms");
+            
             return ResponseEntity.ok(response);
 
         } catch (AuthenticationException e) {
+            long totalTime = System.currentTimeMillis() - startTime;
+            System.out.println("[LOGIN] Failed after " + totalTime + "ms - " + e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Email hoặc mật khẩu không chính xác");
         }
     }

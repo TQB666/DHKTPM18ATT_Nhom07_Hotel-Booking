@@ -5,7 +5,7 @@ import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -35,7 +35,12 @@ public class SecurityConfiguration {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // BCrypt strength: 
+        // - 10 (default): ~10 hashes/sec - an toàn nhất nhưng chậm (1-2 giây)
+        // - 9: ~20 hashes/sec - cân bằng giữa tốc độ & bảo mật (300-500ms)
+        // - 8: ~40 hashes/sec - nhanh hơn nhưng ít an toàn hơn (150-300ms)
+        // Sử dụng strength=9 để cân bằng
+        return new BCryptPasswordEncoder(9);
     }
 
     @Bean
@@ -44,22 +49,25 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtil jwtUtil,
-                                                           UserDetailsService userDetailsService) {
-        return new JwtAuthenticationFilter(jwtUtil, userDetailsService);
+    public DaoAuthenticationProvider authenticationProvider(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return provider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http,
-                                                       PasswordEncoder passwordEncoder,
-                                                       UserDetailsService userDetailsService) throws Exception {
-        AuthenticationManagerBuilder authBuilder =
-                http.getSharedObject(AuthenticationManagerBuilder.class);
+    public AuthenticationManager authenticationManager(
+            DaoAuthenticationProvider authenticationProvider) {
+        return authentication -> authenticationProvider.authenticate(authentication);
+    }
 
-        authBuilder.userDetailsService(userDetailsService)
-                .passwordEncoder(passwordEncoder);
-
-        return authBuilder.build();
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtil jwtUtil,
+                                                           UserDetailsService userDetailsService) {
+        return new JwtAuthenticationFilter(jwtUtil, userDetailsService);
     }
 
     @Bean
