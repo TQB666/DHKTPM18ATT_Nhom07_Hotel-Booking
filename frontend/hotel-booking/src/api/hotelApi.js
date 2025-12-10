@@ -38,14 +38,13 @@ export const getHotels = async (filters) => {
 // Tìm khách sạn theo id
 export const getHotelById = async (id) => {
   try {
-    const res = await api.get(`/hotels/${id}`); 
+    const res = await api.get(`/hotels/${id}`);
     return res.data;
   } catch (err) {
     console.error("Lỗi khi lấy khách sạn:", err);
     throw err;
   }
 };
-
 
 // ==================== TAG APIs ====================
 
@@ -78,11 +77,11 @@ export const createHotelTag = async (hotelId, tagData) => {
     return res.data;
   } catch (error) {
     console.error("Lỗi khi gọi API createHotelTag:", error);
-    
+
     if (error.response?.status === 400) {
       throw new Error("Tên tag đã tồn tại");
     }
-    
+
     throw error;
   }
 };
@@ -94,15 +93,15 @@ export const updateTag = async (id, tagData) => {
     return res.data;
   } catch (error) {
     console.error("Lỗi khi gọi API updateTag:", error);
-    
+
     if (error.response?.status === 400) {
       throw new Error("Tên tag đã tồn tại");
     }
-    
+
     if (error.response?.status === 404) {
       throw new Error("Tag không tồn tại");
     }
-    
+
     throw error;
   }
 };
@@ -114,16 +113,16 @@ export const deleteTag = async (id) => {
     return res.data;
   } catch (error) {
     console.error("Lỗi khi gọi API deleteTag:", error);
-    
+
     if (error.response?.status === 404) {
       throw new Error("Tag không tồn tại");
     }
-    
+
     throw error;
   }
 };
 
-// 
+//
 
 export const getAllFacilities = async () => {
   try {
@@ -141,11 +140,11 @@ export const createFacility = async (facilityData) => {
     return res.data;
   } catch (error) {
     console.error("Lỗi khi gọi API createFacility:", error);
-    
+
     if (error.response?.status === 400) {
       throw new Error("Tên tiện ích đã tồn tại");
     }
-    
+
     throw error;
   }
 };
@@ -162,10 +161,41 @@ export const addFacilityToHotel = async (hotelId, data) => {
 
 export const deleteFacilityFromHotel = async (hotelId, facilityId) => {
   try {
-    const res = await api.delete(`/admin/hotels/${hotelId}/facilities/${facilityId}`);
+    const res = await api.delete(
+      `/admin/hotels/${hotelId}/facilities/${facilityId}`
+    );
     return res.data;
   } catch (error) {
     console.error("Lỗi khi gọi API deleteFacilityFromHotel:", error);
+    throw error;
+  }
+};
+
+// ==================== IMAGE APIs ====================
+
+// Upload nhiều ảnh cho khách sạn
+export const uploadHotelImages = async (hotelId, files) => {
+  try {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+
+    const res = await api.post(`/admin/hotels/${hotelId}/images`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API uploadHotelImages:", error);
+    throw error;
+  }
+};
+
+// Xóa ảnh của khách sạn
+export const deleteHotelImage = async (hotelId, imageId) => {
+  try {
+    const res = await api.delete(`/admin/hotels/${hotelId}/images/${imageId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi API deleteHotelImage:", error);
     throw error;
   }
 };
